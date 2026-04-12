@@ -1,7 +1,7 @@
-# Stratos Management System - Technical Design Document (Claude Code Optimized)
+# Censorate Management System - Technical Design Document (Claude Code Optimized)
 
 ## 1. System Overview
-Stratos is an AI-native requirement management system organized by **Projects**. It leverages an "AI First, Human Check" philosophy to manage the lifecycle of requirements from intake to completion.
+Censorate is an AI-native requirement management system organized by **Projects**. It leverages an "AI First, Human Check" philosophy to manage the lifecycle of requirements from intake to completion.
 
 ## 2. Core Architecture: Project-Based Namespacing
 All entities (Requirements, Tasks, Test Cases) exist within a **Project** namespace.
@@ -36,7 +36,7 @@ All entities (Requirements, Tasks, Test Cases) exist within a **Project** namesp
 *   **Analytics**: Efficiency insights (Cycle time, CFD).
 *   **Archive**: Permanent storage for completed requirements with full traceability.
 
-## 5. UI/UX Principles (Stratos Management System)
+## 5. UI/UX Principles (Censorate Management System)
 *   **Minimalist Architectural Style**: High contrast, Manrope typography, clean line-based separation.
 *   **Color-Coded Phases**: Low-saturation background tints for lanes (e.g., Amber for Analysis, Blue for Dev).
 *   **Unique ID Traceability**: Every requirement is tracked via a persistent REQ-XXXX ID across all phases.

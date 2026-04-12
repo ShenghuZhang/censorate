@@ -1,1 +1,1 @@
-"""Unit tests module - contains unit tests for Stratos system."""
+"""Unit tests module - contains unit tests for Censorate system."""

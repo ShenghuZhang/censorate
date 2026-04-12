@@ -1,8 +1,8 @@
-# Stratos Management System - Backend Implementation Guide
+# Censorate Management System - Backend Implementation Guide
 
 ## 1. Introduction
 
-This guide provides a comprehensive, step-by-step implementation guide for the Stratos Management System backend. It covers all aspects from development environment setup to production deployment, following the design specifications outlined in the backend design document.
+This guide provides a comprehensive, step-by-step implementation guide for the Censorate Management System backend. It covers all aspects from development environment setup to production deployment, following the design specifications outlined in the backend design document.
 
 ## 2. Current Project Structure
 
@@ -131,7 +131,7 @@ cd /Users/moya/Workspace/stichdemo/stratos-system
 
 cat > .env << 'EOF'
 # Application
-APP_NAME=Stratos API
+APP_NAME=Censorate API
 API_PREFIX=/api/v1
 DEBUG=True
 
@@ -185,7 +185,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Application
-    APP_NAME: str = "Stratos API"
+    APP_NAME: str = "Censorate API"
     APP_VERSION: str = "1.0.0"
     API_PREFIX: str = "/api/v1"
     DEBUG: bool = False
@@ -388,52 +388,52 @@ cat > /Users/moya/Workspace/stichdemo/stratos-system/backend/exceptions.py << 'E
 from typing import Optional, Dict
 from fastapi import HTTPException, status
 
-class StratosError(Exception):
-    """Base exception class for Stratos system"""
+class CensorateError(Exception):
+    """Base exception class for Censorate system"""
     def __init__(self, message: str, details: Optional[Dict] = None):
         self.message = message
         self.details = details or {}
         super().__init__(message)
 
-class NotFoundError(StratosError):
+class NotFoundError(CensorateError):
     """Resource not found"""
     pass
 
-class ValidationError(StratosError):
+class ValidationError(CensorateError):
     """Validation error"""
     pass
 
-class TransitionError(StratosError):
+class TransitionError(CensorateError):
     """Invalid state transition"""
     pass
 
-class AuthorizationError(StratosError):
+class AuthorizationError(CensorateError):
     """Authorization failed"""
     pass
 
-class AIServiceError(StratosError):
+class AIServiceError(CensorateError):
     """AI service error"""
     pass
 
-class DeepAgentError(StratosError):
+class DeepAgentError(CensorateError):
     """DeepAgent integration error"""
     pass
 
-class DuplicateError(StratosError):
+class DuplicateError(CensorateError):
     """Duplicate resource error"""
     pass
 
-class GitHubIntegrationError(StratosError):
+class GitHubIntegrationError(CensorateError):
     """GitHub integration error"""
     pass
 
-class LarkIntegrationError(StratosError):
+class LarkIntegrationError(CensorateError):
     """Lark integration error"""
     pass
 
 # FastAPI exception handlers
 def create_http_exception(
-    exception: StratosError,
+    exception: CensorateError,
     status_code: int = status.HTTP_400_BAD_REQUEST
 ) -> HTTPException:
     return HTTPException(
@@ -1588,18 +1588,18 @@ from core.logger import logger
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown."""
     # Startup
-    logger.info("Starting Stratos Management System API")
+    logger.info("Starting Censorate Management System API")
     init_db()
     logger.info("Database initialized")
     yield
     # Shutdown
-    logger.info("Shutting down Stratos Management System API")
+    logger.info("Shutting down Censorate Management System API")
 
 
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Stratos Management System - AI-native requirement management",
+    description="Censorate Management System - AI-native requirement management",
     version=settings.APP_VERSION,
     lifespan=lifespan,
     docs_url=f"{settings.API_PREFIX}/docs",
@@ -1631,7 +1631,7 @@ app.include_router(lark.router, prefix=settings.API_PREFIX)
 async def root():
     """Root endpoint - provides basic API information."""
     return {
-        "message": "Stratos Management System API",
+        "message": "Censorate Management System API",
         "version": settings.APP_VERSION,
         "docs": f"{settings.API_PREFIX}/docs",
         "redoc": f"{settings.API_PREFIX}/redoc"

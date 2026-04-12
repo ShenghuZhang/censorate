@@ -1,4 +1,4 @@
-# Stratos Management System - Test Strategy and QA Plan
+# Censorate Management System - Test Strategy and QA Plan
 
 ## 1. 测试覆盖目标
 

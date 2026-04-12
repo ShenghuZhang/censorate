@@ -8,10 +8,10 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    """系统配置类 - 管理 Stratos 系统的所有配置"""
+    """系统配置类 - 管理 Censorate 系统的所有配置"""
 
     # Application
-    APP_NAME: str = "Stratos API"
+    APP_NAME: str = "Censorate API"
     APP_VERSION: str = "1.0.0"
     API_PREFIX: str = "/api/v1"
     DEBUG: bool = False

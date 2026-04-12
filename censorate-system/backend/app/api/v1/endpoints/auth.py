@@ -1,4 +1,4 @@
-"""Authentication endpoints for Stratos API."""
+"""Authentication endpoints for Censorate API."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session

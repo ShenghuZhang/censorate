@@ -1,13 +1,13 @@
-# Stratos AI Agents Implementation Guide
+# Censorate AI Agents Implementation Guide
 
-基于 Deep Agents 的 Stratos 系统 AI Agent 完整实现指南
+基于 Deep Agents 的 Censorate 系统 AI Agent 完整实现指南
 
 ## 目录
 
 1. [Deep Agents 框架集成](#1-deep-agents-框架集成)
 2. [Agent 实现模式](#2-agent-实现模式)
 3. [Skill 实现](#3-skill-实现)
-4. [Stratos 集成](#4-stratos-集成)
+4. [Censorate 集成](#4-stratos-集成)
 5. [测试策略](#5-测试策略)
 
 ---
@@ -40,7 +40,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # Application
-    APP_NAME: str = "Stratos API"
+    APP_NAME: str = "Censorate API"
     APP_VERSION: str = "1.0.0"
     API_PREFIX: str = "/api/v1"
     DEBUG: bool = False
@@ -292,7 +292,7 @@ from ..services.deepagent_service import DeepAgentService
 from ..services.lark_service import LarkService
 
 class BaseAgent(ABC):
-    """基础 Agent 类 - 所有 Stratos AI Agent 的抽象基类"""
+    """基础 Agent 类 - 所有 Censorate AI Agent 的抽象基类"""
 
     def __init__(
         self,
@@ -897,7 +897,7 @@ class AnalysisAgent(BaseAgent):
 
 ---
 
-## 4. Stratos 集成
+## 4. Censorate 集成
 
 ### 4.1 连接需求服务
 
@@ -1337,7 +1337,7 @@ from stratos_system.backend.services.deepagent_service import DeepAgentService
 from stratos_system.backend.repositories.agent_execution_repository import AgentExecutionRepository
 
 class TestDeepAgentIntegration:
-    """Tests for Deep Agent integration with Stratos system."""
+    """Tests for Deep Agent integration with Censorate system."""
 
     @patch('httpx.AsyncClient.post')
     @patch('httpx.AsyncClient.get')
@@ -1532,7 +1532,7 @@ class TestCompleteAgentWorkflow:
 ```bash
 # .env.example
 # Application
-APP_NAME=Stratos API
+APP_NAME=Censorate API
 API_PREFIX=/api/v1
 DEBUG=False
 

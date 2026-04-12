@@ -1,4 +1,4 @@
-# Stratos Management System
+# Censorate Management System
 
 AI-native requirement management system organized by Projects with "AI First, Human Check" philosophy.
 

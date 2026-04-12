@@ -1,4 +1,4 @@
-"""Base Agent class - abstract base class for all Stratos AI Agents.
+"""Base Agent class - abstract base class for all Censorate AI Agents.
 
 This module implements the foundational Agent class following Deep Agents best practices.
 """
@@ -10,7 +10,7 @@ from ..services.lark_service import LarkService
 
 
 class BaseAgent(ABC):
-    """基础 Agent 类 - 所有 Stratos AI Agent 的抽象基类"""
+    """基础 Agent 类 - 所有 Censorate AI Agent 的抽象基类"""
 
     def __init__(
         self,

@@ -1,4 +1,4 @@
-"""Stratos Management System services."""
+"""Censorate Management System services."""
 
 from .deepagent_service import DeepAgentService
 from .lark_service import LarkService

@@ -13,7 +13,7 @@ from backend.main import app
 import uvicorn
 
 if __name__ == "__main__":
-    print("Starting Stratos Management System...")
+    print("Starting Censorate Management System...")
     print("API: http://localhost:8010")
     print("Docs: http://localhost:8010/docs")
     print("")

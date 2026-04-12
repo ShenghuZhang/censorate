@@ -1,8 +1,8 @@
-# Stratos Management System - 项目总览
+# Censorate Management System - 项目总览
 
 ## 项目概述
 
-Stratos 是一个 AI 原生的需求管理系统，采用 "AI 第一，人类检查" 的理念，通过项目为组织单位管理需求的全生命周期。
+Censorate 是一个 AI 原生的需求管理系统，采用 "AI 第一，人类检查" 的理念，通过项目为组织单位管理需求的全生命周期。
 
 ## 技术架构
 

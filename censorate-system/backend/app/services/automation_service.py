@@ -1,6 +1,6 @@
 """Automation Service - manages automation rules and their execution.
 
-Handles event-based and scheduled automation for Stratos Management System.
+Handles event-based and scheduled automation for Censorate Management System.
 """
 
 from typing import Dict, List, Optional, Any

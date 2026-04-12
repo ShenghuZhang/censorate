@@ -1,4 +1,4 @@
-# Stratos Management System - UX Design Document
+# Censorate Management System - UX Design Document
 
 ## 1. Design Philosophy
 

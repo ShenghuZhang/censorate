@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Stratos Management System - 项目启动脚本
+# Censorate Management System - 项目启动脚本
 # 作者: Claude Code
 # 日期: 2024-04-11
 
 echo "============================================="
-echo "Stratos Management System - 项目启动脚本"
+echo "Censorate Management System - 项目启动脚本"
 echo "============================================="
 echo ""
 
@@ -155,7 +155,7 @@ check_services() {
 # 显示启动信息
 display_info() {
     echo -e "\n${GREEN}=============================================${NC}"
-    echo -e "${GREEN}    Stratos 项目启动成功！${NC}"
+    echo -e "${GREEN}    Censorate 项目启动成功！${NC}"
     echo -e "${GREEN}=============================================${NC}"
     echo ""
     echo -e "${YELLOW}🌐 访问地址:${NC}"

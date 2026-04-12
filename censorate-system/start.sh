@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Stratos Management System - Development Startup Script
+# Censorate Management System - Development Startup Script
 
-echo "🚀 Starting Stratos Management System..."
+echo "🚀 Starting Censorate Management System..."
 echo ""
 
 # Check Python is installed

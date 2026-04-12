@@ -1,4 +1,4 @@
-# Stratos Management System - Frontend Design Document
+# Censorate Management System - Frontend Design Document
 
 ## 1. 项目结构
 

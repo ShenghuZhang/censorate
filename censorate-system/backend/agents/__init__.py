@@ -1,1 +1,1 @@
-"""AI Agents module - implements Stratos AI Agents system using Deep Agents."""
+"""AI Agents module - implements Censorate AI Agents system using Deep Agents."""

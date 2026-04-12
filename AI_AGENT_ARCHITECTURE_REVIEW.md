@@ -2,13 +2,13 @@
 
 **架构评审时间**: 2024/04/12
 **状态**: ✅ 已完成
-**项目**: Stratos Management System
+**项目**: Censorate Management System
 
 ---
 
 ## 架构概述
 
-Stratos AI Agent 系统是一个基于 FastAPI 和 Deep Agents 框架的智能需求管理系统，采用分层架构设计。
+Censorate AI Agent 系统是一个基于 FastAPI 和 Deep Agents 框架的智能需求管理系统，采用分层架构设计。
 
 ## 核心架构特点
 

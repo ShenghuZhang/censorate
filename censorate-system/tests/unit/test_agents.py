@@ -1,7 +1,7 @@
 """
 Unit Tests for AI Agents system.
 
-This module implements unit tests for the Stratos AI Agents system.
+This module implements unit tests for the Censorate AI Agents system.
 """
 
 import pytest

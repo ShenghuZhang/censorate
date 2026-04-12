@@ -1,10 +1,10 @@
-"""Stratos Management System exceptions."""
+"""Censorate Management System exceptions."""
 
 from typing import Optional, Dict
 
 
-class StratosError(Exception):
-    """Base exception class for Stratos system."""
+class CensorateError(Exception):
+    """Base exception class for Censorate system."""
 
     def __init__(self, message: str, details: Optional[Dict] = None):
         """Initialize exception with message and optional details."""
@@ -13,7 +13,7 @@ class StratosError(Exception):
         super().__init__(message)
 
 
-class NotFoundError(StratosError):
+class NotFoundError(CensorateError):
     """Resource not found error."""
     pass
 
@@ -43,46 +43,46 @@ class AgentNotFoundError(NotFoundError):
     pass
 
 
-class ValidationError(StratosError):
+class ValidationError(CensorateError):
     """Validation error."""
     pass
 
 
-class ProjectAlreadyExistsError(StratosError):
+class ProjectAlreadyExistsError(CensorateError):
     """Project already exists error."""
     pass
 
 
-class TransitionError(StratosError):
+class TransitionError(CensorateError):
     """Invalid state transition error."""
     pass
 
 
-class AuthorizationError(StratosError):
+class AuthorizationError(CensorateError):
     """Authorization failed error."""
     pass
 
 
-class AIServiceError(StratosError):
+class AIServiceError(CensorateError):
     """AI service error."""
     pass
 
 
-class DeepAgentError(StratosError):
+class DeepAgentError(CensorateError):
     """DeepAgent integration error."""
     pass
 
 
-class DuplicateError(StratosError):
+class DuplicateError(CensorateError):
     """Duplicate resource error."""
     pass
 
 
-class GitHubIntegrationError(StratosError):
+class GitHubIntegrationError(CensorateError):
     """GitHub integration error."""
     pass
 
 
-class LarkIntegrationError(StratosError):
+class LarkIntegrationError(CensorateError):
     """Lark integration error."""
     pass

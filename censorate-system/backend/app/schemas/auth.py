@@ -1,4 +1,4 @@
-"""Authentication schemas for Stratos API."""
+"""Authentication schemas for Censorate API."""
 
 from typing import Optional
 from datetime import datetime

@@ -1,4 +1,4 @@
-# Stratos Management System - Technical Architecture Document
+# Censorate Management System - Technical Architecture Document
 
 ## 1. System Architecture Overview
 
@@ -844,32 +844,32 @@ class CacheKeys:
 ### Error Types
 
 ```python
-class StratosError(Exception):
-    """Base exception for Stratos errors"""
+class CensorateError(Exception):
+    """Base exception for Censorate errors"""
 
-class NotFoundError(StratosError):
+class NotFoundError(CensorateError):
     """Resource not found"""
 
-class ValidationError(StratosError):
+class ValidationError(CensorateError):
     """Validation error"""
 
-class TransitionError(StratosError):
+class TransitionError(CensorateError):
     """Invalid state transition"""
 
-class AuthorizationError(StratosError):
+class AuthorizationError(CensorateError):
     """Authorization failure"""
 
-class AIServiceError(StratosError):
+class AIServiceError(CensorateError):
     """AI service error"""
 
-class GitHubIntegrationError(StratosError):
+class GitHubIntegrationError(CensorateError):
     """GitHub integration error"""
 ```
 
 ### Global Error Handler
 
 ```python
-@app.exception_handler(StratosError)
+@app.exception_handler(CensorateError)
 async def stratos_error_handler(request, exc):
     return JSONResponse(
         status_code=400,

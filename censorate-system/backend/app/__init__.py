@@ -1,1 +1,1 @@
-"""Stratos Management System - AI-native requirement management platform."""
+"""Censorate Management System - AI-native requirement management platform."""

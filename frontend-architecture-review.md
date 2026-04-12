@@ -1,7 +1,7 @@
 # 前端架构审查报告
 
 **审查日期**: 2026-04-11  
-**项目**: Stratos Management System - Frontend  
+**项目**: Censorate Management System - Frontend  
 **审查范围**: 整体架构、组件设计、状态管理、API集成、代码质量
 
 ---
@@ -674,7 +674,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8026
 
 ### 整体评估
 
-Stratos前端架构基础扎实，技术选择合理，符合现代React应用开发最佳实践。核心问题在于组件粒度和API集成的完善程度。
+Censorate前端架构基础扎实，技术选择合理，符合现代React应用开发最佳实践。核心问题在于组件粒度和API集成的完善程度。
 
 **架构健康度**: 75% (良好)
 

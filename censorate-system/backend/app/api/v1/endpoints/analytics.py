@@ -1,4 +1,4 @@
-"""Analytics endpoints for Stratos API."""
+"""Analytics endpoints for Censorate API."""
 
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status

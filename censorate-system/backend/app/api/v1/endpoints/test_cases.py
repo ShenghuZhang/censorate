@@ -1,4 +1,4 @@
-"""Test case endpoints for Stratos API."""
+"""Test case endpoints for Censorate API."""
 
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status

@@ -1,8 +1,8 @@
-# Stratos Management System - Frontend Implementation Guide
+# Censorate Management System - Frontend Implementation Guide
 
 ## Overview
 
-This guide provides a step-by-step implementation for the Stratos Management System frontend, following the design specifications. We'll build a modern, AI-native requirement management system using Next.js 14, TypeScript, Tailwind CSS, and shadcn/ui.
+This guide provides a step-by-step implementation for the Censorate Management System frontend, following the design specifications. We'll build a modern, AI-native requirement management system using Next.js 14, TypeScript, Tailwind CSS, and shadcn/ui.
 
 ## Prerequisites
 
@@ -130,7 +130,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold">S</span>
           </div>
-          <h1 className="text-xl font-bold font-headline">Stratos</h1>
+          <h1 className="text-xl font-bold font-headline">Censorate</h1>
         </div>
 
         <nav className="space-y-2">
@@ -1629,7 +1629,7 @@ describe('RequirementCard', () => {
 
 ## Summary
 
-This implementation guide covers all aspects of building the Stratos Management System frontend. By following this guide, you'll create a modern, AI-native requirement management system with:
+This implementation guide covers all aspects of building the Censorate Management System frontend. By following this guide, you'll create a modern, AI-native requirement management system with:
 
 1. Core layout and navigation
 2. Kanban board with drag-and-drop functionality

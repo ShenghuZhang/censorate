@@ -1,4 +1,4 @@
-# Stratos 项目结构 Review 报告
+# Censorate 项目结构 Review 报告
 
 **Review 日期**: 2026-04-12
 **Reviewer**: team-lead

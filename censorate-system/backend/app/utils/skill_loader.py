@@ -1,4 +1,4 @@
-"""Skill loader for Stratos AI Agent system.
+"""Skill loader for Censorate AI Agent system.
 
 Loads and manages skills from the skills directory.
 Skills are defined in SKILL.md files with frontmatter.

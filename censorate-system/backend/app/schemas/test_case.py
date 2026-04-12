@@ -1,4 +1,4 @@
-"""Test case schemas for Stratos API."""
+"""Test case schemas for Censorate API."""
 
 from typing import Optional
 from datetime import datetime

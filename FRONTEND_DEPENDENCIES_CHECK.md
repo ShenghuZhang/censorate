@@ -1,7 +1,7 @@
 # 前端依赖和配置检查报告
 
 **检查日期**: 2024-04-11  
-**项目**: Stratos Management System - Frontend  
+**项目**: Censorate Management System - Frontend  
 **状态**: ✅ 通过
 
 ---
@@ -159,7 +159,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Custom colors for Stratos theme
+        // Custom colors for Censorate theme
         surface: "#f8f9fa",
         "surface-container": "#edeeef",
         "surface-container-low": "#f3f4f5",

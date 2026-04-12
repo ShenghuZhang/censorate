@@ -1,4 +1,4 @@
-"""Authentication service for Stratos API."""
+"""Authentication service for Censorate API."""
 
 from typing import Optional
 from datetime import timedelta

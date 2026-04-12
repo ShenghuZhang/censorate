@@ -1,5 +1,5 @@
 """
-Pytest configuration for Stratos tests.
+Pytest configuration for Censorate tests.
 """
 
 import pytest

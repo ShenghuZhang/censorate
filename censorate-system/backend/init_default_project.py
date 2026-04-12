@@ -29,7 +29,7 @@ def init_default_project():
                 id=str(uuid.uuid4()),
                 name="Default Project",
                 slug="default-project",
-                description="The default project for Stratos",
+                description="The default project for Censorate",
                 project_type="software",
                 created_by="default-user",
                 settings={}

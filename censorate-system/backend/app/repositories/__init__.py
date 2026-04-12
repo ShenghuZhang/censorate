@@ -1,4 +1,4 @@
-"""Repositories module - data access layer for Stratos."""
+"""Repositories module - data access layer for Censorate."""
 
 from .base_repository import BaseRepository
 from .requirement_repository import RequirementRepository

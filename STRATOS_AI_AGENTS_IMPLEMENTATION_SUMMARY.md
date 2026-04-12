@@ -1,8 +1,8 @@
-# Stratos AI Agents 实现总结
+# Censorate AI Agents 实现总结
 
 ## 项目概述
 
-本项目成功创建了完整的 Stratos 系统 AI Agents 实现，包含基于 Deep Agents 最佳实践的完整框架。
+本项目成功创建了完整的 Censorate 系统 AI Agents 实现，包含基于 Deep Agents 最佳实践的完整框架。
 
 ---
 
@@ -127,7 +127,7 @@ docs/
 - 动态 Agent 查找
 - 泳道与 Agent 映射
 
-### 5. Stratos 集成
+### 5. Censorate 集成
 
 ✅ **连接需求服务**
 - 需求服务集成
@@ -226,7 +226,7 @@ docs/
 
 ## 总结
 
-Stratos AI Agents 系统已完整实现，包含：
+Censorate AI Agents 系统已完整实现，包含：
 
 - ✅ 完整的项目结构和框架
 - ✅ 4 种类型的 AI Agent 实现

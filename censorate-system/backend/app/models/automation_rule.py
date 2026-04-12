@@ -1,4 +1,4 @@
-"""AutomationRule model - defines automation rules for Stratos."""
+"""AutomationRule model - defines automation rules for Censorate."""
 
 from sqlalchemy import Column, String, Boolean, JSON, ForeignKey
 from .base import UUIDType, BaseModel, JsonType

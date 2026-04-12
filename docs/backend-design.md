@@ -1,4 +1,4 @@
-# Stratos Management System - Backend Design Document
+# Censorate Management System - Backend Design Document
 
 ## 1. 项目结构
 
@@ -97,7 +97,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # Application
-    APP_NAME: str = "Stratos API"
+    APP_NAME: str = "Censorate API"
     APP_VERSION: str = "1.0.0"
     API_PREFIX: str = "/api/v1"
     DEBUG: bool = False
@@ -1036,42 +1036,42 @@ class LarkService:
 # app/exceptions.py
 from typing import Any, Dict, Optional
 
-class StratosError(Exception):
+class CensorateError(Exception):
     """基础异常类"""
     def __init__(self, message: str, details: Optional[Dict] = None):
         self.message = message
         self.details = details or {}
         super().__init__(message)
 
-class NotFoundError(StratosError):
+class NotFoundError(CensorateError):
     """资源未找到"""
     pass
 
-class ValidationError(StratosError):
+class ValidationError(CensorateError):
     """验证错误"""
     pass
 
-class TransitionError(StratosError):
+class TransitionError(CensorateError):
     """无效状态转换"""
     pass
 
-class AuthorizationError(StratosError):
+class AuthorizationError(CensorateError):
     """授权失败"""
     pass
 
-class AIServiceError(StratosError):
+class AIServiceError(CensorateError):
     """AI 服务错误"""
     pass
 
-class DeepAgentError(StratosError):
+class DeepAgentError(CensorateError):
     """DeepAgent 集成错误"""
     pass
 
-class DuplicateError(StratosError):
+class DuplicateError(CensorateError):
     """重复资源（角色、Agent 等）"""
     pass
 
-class GitHubIntegrationError(StratosError):
+class GitHubIntegrationError(CensorateError):
     """GitHub 集成错误"""
     pass
 ```
@@ -1150,7 +1150,7 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```bash
 # .env.example
 # Application
-APP_NAME=Stratos API
+APP_NAME=Censorate API
 API_PREFIX=/api/v1
 DEBUG=False
 
