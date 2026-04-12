@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stratos | Kanban Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#f8f9fa",
+                        "tertiary-container": "#914d00",
+                        "inverse-primary": "#b2c5ff",
+                        "on-secondary-fixed": "#0b1c31",
+                        "on-secondary-container": "#54647b",
+                        "on-primary-container": "#ccd8ff",
+                        "tertiary": "#6e3900",
+                        "surface-container-highest": "#e1e3e4",
+                        "primary-container": "#0056d2",
+                        "tertiary-fixed": "#ffdcc3",
+                        "secondary-fixed": "#d3e3ff",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "surface-container": "#edeeef",
+                        "on-surface": "#191c1d",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f3f4f5",
+                        "primary-fixed": "#dae2ff",
+                        "on-primary-fixed-variant": "#0040a1",
+                        "on-primary-fixed": "#001847",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#ffd0ac",
+                        "surface-tint": "#0056d2",
+                        "on-surface-variant": "#424654",
+                        "on-error-container": "#93000a",
+                        "outline": "#737785",
+                        "surface-container-high": "#e7e8e9",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "outline-variant": "#c3c6d6",
+                        "on-tertiary-fixed": "#2f1500",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#f8f9fa",
+                        "on-background": "#191c1d",
+                        "background": "#f8f9fa",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#d9dadb",
+                        "on-secondary-fixed-variant": "#38485e",
+                        "on-error": "#ffffff",
+                        "secondary": "#4f5f77",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#0040a1",
+                        "inverse-on-surface": "#f0f1f2",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#d0e1fd",
+                        "surface-variant": "#e1e3e4",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "secondary-fixed-dim": "#b7c8e3",
+                        "inverse-surface": "#2e3132"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-primary-gradient {
+            background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface flex min-h-screen overflow-hidden">
+<!-- SideNavBar Component -->
+<aside class="hidden md:flex flex-col p-4 space-y-2 bg-slate-100 dark:bg-slate-950 h-screen w-64 rounded-r-2xl transition-all duration-300 shadow-sm dark:shadow-none font-['Inter'] text-sm">
+<div class="flex items-center gap-3 px-2 py-4 mb-4">
+<div class="w-10 h-10 rounded-xl bg-primary-gradient flex items-center justify-center text-white">
+<span class="material-symbols-outlined" data-icon="architecture">architecture</span>
+</div>
+<div>
+<p class="font-bold text-on-surface leading-tight">Project Alpha</p>
+<p class="text-xs text-secondary">Active Workspace</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 font-bold rounded-lg transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="view_kanban">view_kanban</span>
+<span>Kanban</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="list_alt">list_alt</span>
+<span>Backlog</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="pt-4 border-t border-outline-variant/15">
+<button class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-gradient text-white font-semibold rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm" data-icon="person_add">person_add</span>
+<span>Invite Member</span>
+</button>
+</div>
+<div class="mt-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="archive">archive</span>
+<span>Archive</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar Component -->
+<header class="flex justify-between items-center h-16 px-8 w-full max-w-full bg-slate-50 dark:bg-slate-900 sticky top-0 z-10 font-['Manrope'] tracking-tight">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold text-slate-900 dark:text-white">Stratos</span>
+<div class="hidden lg:flex items-center space-x-6 text-sm">
+<a class="text-blue-700 dark:text-blue-400 font-semibold border-b-2 border-blue-700 py-5" href="#">Projects</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors py-5" href="#">Team</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors py-5" href="#">Reports</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm" data-icon="search">search</span>
+<input class="bg-surface-container-high/50 border-none rounded-full pl-10 pr-4 py-1.5 text-sm w-64 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search tasks..." type="text"/>
+</div>
+<button class="p-2 text-slate-500 hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-surface-container-low rounded-full transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<img alt="User profile" class="w-8 h-8 rounded-full object-cover ml-2" data-alt="professional portrait of a creative director in a minimalist studio setting with soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALgSg-U0ntiLkuIk4L-mVsVUphA8bnmnix-3XUKUmJsgc7lxJbzUATwa2KLPT0dTJ6PCYXgk_arP20leRzP4fo6hTBXuGeNoLI6dUE0fE4wA7PjhkBooSg6aVndODjRL18Z0HtpQbNN0NblTk-TG16Bnt6l1MKAgGhQiQrAk5bv-N-QaiNUdodaGhDbV31RAg8B2ImmDa1hP8B16Q1c24D2xfrjcu7mlkOGdGcr8fxrW85pH3mhJuMcOast5rtv4b1J9AKKIgYLaA"/>
+</div>
+</header>
+<!-- Kanban Board Surface -->
+<div class="flex-1 overflow-x-auto p-8 no-scrollbar bg-surface">
+<div class="flex h-full gap-6 min-w-max">
+<!-- Swimlane: New Requirement -->
+<div class="flex flex-col w-80 shrink-0">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-bold text-lg tracking-tight">New Requirement</h3>
+<span class="bg-surface-container-high text-secondary text-[10px] font-bold px-2 py-0.5 rounded-full">4</span>
+</div>
+<button class="text-primary hover:bg-primary/5 p-1 rounded transition-colors">
+<span class="material-symbols-outlined text-xl" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+<div class="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar pb-6 rounded-xl bg-surface-container-low/40 p-3">
+<!-- Task Card -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow group cursor-pointer">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-tertiary-container/10 text-on-tertiary-fixed-variant text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full">Discovery</span>
+<div class="flex items-center gap-1 text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                                    AI FIRST
+                                </div>
+</div>
+<h4 class="font-semibold text-sm mb-4 leading-snug">User behavior flow mapping for mobile checkout</h4>
+<div class="flex justify-between items-center">
+<div class="flex -space-x-2">
+<img alt="Team member" class="w-6 h-6 rounded-full border-2 border-surface-container-lowest" data-alt="headshot of a male product designer with a thoughtful expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDM8R3CKu39v0vvhJe-ejJYQ6DhN9l8Q5QnCXIrm2CUp1uyuw7IeDtpdEgW4PNXNPYZwHRh9o-Xe5rpwNaTHrTFGCGpBke4sCPFsUpubOHmkM1I-jaq4WlOwRbiZMHKdHw4cP8YC4bsOcNrbRsYYs2wfBNX7tPF-KmR_uHXfXQWWVsuFo3147SlZxMOBTlzr2PZ6RwlOCY5MWPtkVT1ACoxMx2mrRo7YNDdRm_EE3qFi7Ac_uxLEFSI1lo4y2ZyjnNJlFOz2DjRfg"/>
+<div class="w-6 h-6 rounded-full bg-surface-container-high border-2 border-surface-container-lowest flex items-center justify-center text-[8px] font-bold text-secondary">+2</div>
+</div>
+<div class="flex items-center gap-2 text-outline">
+<span class="material-symbols-outlined text-sm" data-icon="chat_bubble_outline">chat_bubble_outline</span>
+<span class="text-[11px]">8</span>
+</div>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/30 text-outline hover:border-primary/40 hover:text-primary rounded-xl transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                            Add Requirement
+                        </button>
+</div>
+</div>
+<!-- Swimlane: Analysis -->
+<div class="flex flex-col w-80 shrink-0">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-bold text-lg tracking-tight">Analysis</h3>
+<span class="bg-surface-container-high text-secondary text-[10px] font-bold px-2 py-0.5 rounded-full">2</span>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar rounded-xl bg-surface-container-low/40 p-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm group">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-blue-100 text-blue-800 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full">System Architecture</span>
+<div class="flex items-center gap-1 text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="person">person</span>
+                                    HUMAN CHECK
+                                </div>
+</div>
+<h4 class="font-semibold text-sm mb-4 leading-snug">Database schema optimization for real-time sync</h4>
+<div class="flex justify-between items-center">
+<img alt="Lead dev" class="w-6 h-6 rounded-full" data-alt="portrait of a software engineer looking focused" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgtzyZjJeL4GZls9TVB7eWDRyrwUsNtmBI38SObRd0WOsZNye8R_4JNBLIVAo6mVlFYWIfeRIk-_nXyYJh42aeA6jJQX1sBrVRWhZUG7U5aNQU8IJ3F-K8j3XpCaZEwz3do4F9cC_n6qD1i0kHE8ioDwSnPVIdaGTnJgPvZN9jy12QZhHiwFvy26nbfRWCMKAH-P7fgFoErgCOACJRvOkyZCiYCLNp3PP2x16m7tj_WzjabhgTGE2AE7UdCS_Q2419YzT14Xwmpi8"/>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-error" data-icon="priority_high">priority_high</span>
+<span class="text-[11px] text-outline">Aug 12</span>
+</div>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/30 text-outline hover:border-primary/40 hover:text-primary rounded-xl transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                            Add Requirement
+                        </button>
+</div>
+</div>
+<!-- Swimlane: Design -->
+<div class="flex flex-col w-80 shrink-0">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-bold text-lg tracking-tight">Design</h3>
+<span class="bg-surface-container-high text-secondary text-[10px] font-bold px-2 py-0.5 rounded-full">3</span>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar rounded-xl bg-surface-container-low/40 p-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm group">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-secondary-container text-on-secondary-container text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full">UI/UX</span>
+<div class="flex items-center gap-1 text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                                    AI FIRST
+                                </div>
+</div>
+<h4 class="font-semibold text-sm mb-4 leading-snug">Design system expansion: Data visualization components</h4>
+<div class="aspect-video w-full rounded-lg bg-surface-container mb-4 overflow-hidden relative group-hover:opacity-90 transition-opacity">
+<img alt="Component preview" class="w-full h-full object-cover" data-alt="minimalist design system style guide with neat typography and color swatches" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmyOdSaNdJAFuGDPi-k7rCDE19hElKTfvxcdzZQ0Aaaca_LIosBHphyk2BLos8rEikIRuyfZxAkRg-8gwZ5S2AlXLOzmooANZozjqOKOv47UPTKJdakr8Hy4Eg95cYFfNDxwlhrHgYzS3QfbbHuLXknALXPWVy-uUUreK3Brkg53_6gZNePOo1U4tk6_s0N3ZT3eb7QGPCEtkabld5yk8lU0JnT_Wz7H84wiYNpYudkTxZ-Xr92BBTL6ezGwDhl2i0HG7I3MfRuoU"/>
+</div>
+<div class="flex justify-between items-center">
+<img alt="Designer" class="w-6 h-6 rounded-full" data-alt="smiling female product designer portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB73WfE9uFyvQO5OYaE5zjGU4D-vQ2xSgrA7MpmURzzh37UYFlX31kBwuHtwyfqWKVeEryG6M7N-pQfCOpemz5UYtTpZqRu6CvvS3g6OXhY-jCmejcQK1bvXuzmb7M3axZvaCq9T4Fmkrm-DSTrx_eqz3LtLa1Oiztv5Knd4hSvcxDN3009uPC1MkaMew3JELsW5MyKLrfMS7Xj_Kgn7tcRspc8Mx996ngyvHNMwWYV5Rqt-XEVs1B01gHtqIZqjl0Br-1RUNV5CDI"/>
+<span class="text-[11px] text-outline">Due today</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/30 text-outline hover:border-primary/40 hover:text-primary rounded-xl transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                            Add Requirement
+                        </button>
+</div>
+</div>
+<!-- Swimlane: Development -->
+<div class="flex flex-col w-80 shrink-0">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-bold text-lg tracking-tight">Development</h3>
+<span class="bg-surface-container-high text-secondary text-[10px] font-bold px-2 py-0.5 rounded-full">5</span>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar rounded-xl bg-surface-container-low/40 p-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm group">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-primary-fixed text-on-primary-fixed-variant text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full">Refactor</span>
+<div class="flex items-center gap-1 text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="person">person</span>
+                                    HUMAN CHECK
+                                </div>
+</div>
+<h4 class="font-semibold text-sm mb-4 leading-snug">Migration to React Server Components for Dashboard</h4>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-outline" data-icon="link">link</span>
+<span class="text-[11px] text-outline">PR #142</span>
+</div>
+<div class="flex -space-x-2">
+<img alt="Dev 1" class="w-6 h-6 rounded-full border-2 border-surface-container-lowest" data-alt="portrait of a focused backend developer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhn3V3xHdzM9S4hfwobyLeFIp-XVtCF-isYz1n-28QmSMdbcCYYskb4-pB48VWNPIF4iD2oagQIP4RFSZMttmRzy9tGHJWRPEipQBzM8Nv-Re2oCAhn_lmLsEcXlMXgF0O2wtZ6fu0TDpW14RtzDxRkbn-b3Jeh7IGI2zLj0rSWhXsiFi2Hela0Wzs24YqCAjDZ7o9glNjpwA78WFzrdRoHSTEGys5A7mawCcd-d8YdvhjVx40HpqnOwrHKXtdJ1KnE7d_xZZDiDs"/>
+<img alt="Dev 2" class="w-6 h-6 rounded-full border-2 border-surface-container-lowest" data-alt="portrait of a confident female engineer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC43Xdky758irq_K7-_wC2QZ7ErAmER-MCuXmffO9foHu_QPYCpLb9RyK7NHxIB0Rt8Y3HAEsflqW0fHCslVeUWhhEBBmF_5B9QkfTmH4cSoeOsFdwTl4uCV6bh7Xc6IzdU8Kc1l91k9IiYRl7J1ZfhymnsaWew17JNjeCn98OEHljswgXoQkwoThrYYqARzoBsIX8akSZmAe9cZ20lomQlLJdDL5PpfDeeUx97LJwDlySzN-mQ_7aNb7ddKtE_rrTdVwJJgeqpTBQ"/>
+</div>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/30 text-outline hover:border-primary/40 hover:text-primary rounded-xl transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                            Add Requirement
+                        </button>
+</div>
+</div>
+<!-- Swimlane: Testing -->
+<div class="flex flex-col w-80 shrink-0">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-bold text-lg tracking-tight">Testing</h3>
+<span class="bg-surface-container-high text-secondary text-[10px] font-bold px-2 py-0.5 rounded-full">1</span>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar rounded-xl bg-surface-container-low/40 p-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm group">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-error-container text-on-error-container text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full">Critical</span>
+<div class="flex items-center gap-1 text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                                    AI FIRST
+                                </div>
+</div>
+<h4 class="font-semibold text-sm mb-4 leading-snug">End-to-end testing for international payments flow</h4>
+<div class="flex items-center gap-2 mb-4">
+<div class="flex-1 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-2/3 h-full bg-primary rounded-full"></div>
+</div>
+<span class="text-[10px] font-bold text-secondary">67%</span>
+</div>
+<div class="flex justify-between items-center">
+<img alt="QA" class="w-6 h-6 rounded-full" data-alt="professional portrait of a quality assurance specialist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqF8FGANaIQoifE1uZ4wbjnNQ9yeyUiDmhbBeYIEjslUN1ah_3nbEelGQP5qiTeEQEcB2W0jF4OueXi58ITfj2BIWmRCKsITK7TzONNp6rUalZyyKcfpX5rNk6P2b8r0Y-kJu0BZUGva6Of1hWyDr2032S8r0AJ3zt7FTtsuBm6BzMhyqe4j1cFl87VU1-sdNupHMuXz-cbWU68JdVINa34dkpMGhvJ_Db1mGYahGxOSIslxeHbepuDI3oiih8zVJZtGE4YipBgwI"/>
+<span class="material-symbols-outlined text-sm text-outline" data-icon="bug_report">bug_report</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/30 text-outline hover:border-primary/40 hover:text-primary rounded-xl transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                            Add Requirement
+                        </button>
+</div>
+</div>
+<!-- Swimlane: Completed -->
+<div class="flex flex-col w-80 shrink-0">
+<div class="flex items-center justify-between mb-4 px-2">
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-bold text-lg tracking-tight">Completed</h3>
+<span class="bg-surface-container-high text-secondary text-[10px] font-bold px-2 py-0.5 rounded-full">12</span>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar rounded-xl bg-surface-container-low/40 p-3">
+<div class="bg-surface-container-lowest/60 p-4 rounded-xl shadow-none group opacity-80">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-on-secondary-container/10 text-on-secondary-container text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full">Analytics</span>
+<div class="flex items-center gap-1 text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="person">person</span>
+                                    HUMAN CHECK
+                                </div>
+</div>
+<h4 class="font-semibold text-sm mb-4 leading-snug line-through text-secondary">Integration of Mixpanel events for funnel tracking</h4>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-1 text-on-primary-fixed-variant">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[11px] font-semibold">Done</span>
+</div>
+<span class="text-[11px] text-outline">Jul 28</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-outline-variant/30 text-outline hover:border-primary/40 hover:text-primary rounded-xl transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                            Add Requirement
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB (Hidden on this screen as per instructions for focus) -->
+</body></html>

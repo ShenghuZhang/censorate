@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login | Stratos Management</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-fixed-dim": "#ffb77d",
+                      "surface-container": "#edeeef",
+                      "inverse-on-surface": "#f0f1f2",
+                      "primary-container": "#0056d2",
+                      "surface-container-highest": "#e1e3e4",
+                      "on-background": "#191c1d",
+                      "on-primary-container": "#ccd8ff",
+                      "tertiary-fixed": "#ffdcc3",
+                      "on-tertiary-fixed": "#2f1500",
+                      "on-surface-variant": "#424654",
+                      "on-surface": "#191c1d",
+                      "surface": "#f8f9fa",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-fixed": "#0b1c31",
+                      "surface-container-low": "#f3f4f5",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "secondary-container": "#d0e1fd",
+                      "primary": "#0040a1",
+                      "error": "#ba1a1a",
+                      "on-primary-fixed": "#001847",
+                      "on-error": "#ffffff",
+                      "surface-container-high": "#e7e8e9",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#914d00",
+                      "secondary": "#4f5f77",
+                      "on-tertiary-container": "#ffd0ac",
+                      "secondary-fixed-dim": "#b7c8e3",
+                      "inverse-surface": "#2e3132",
+                      "surface-dim": "#d9dadb",
+                      "on-primary-fixed-variant": "#0040a1",
+                      "on-secondary-fixed-variant": "#38485e",
+                      "inverse-primary": "#b2c5ff",
+                      "surface-tint": "#0056d2",
+                      "background": "#f8f9fa",
+                      "on-primary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "tertiary": "#6e3900",
+                      "error-container": "#ffdad6",
+                      "outline": "#737785",
+                      "surface-variant": "#e1e3e4",
+                      "primary-fixed": "#dae2ff",
+                      "surface-bright": "#f8f9fa",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed": "#d3e3ff",
+                      "on-tertiary-fixed-variant": "#6e3900",
+                      "outline-variant": "#c3c6d6",
+                      "on-secondary-container": "#54647b"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+        }
+      </style>
+</head>
+<body class="bg-surface font-body text-on-surface flex flex-col min-h-screen">
+<!-- Auth Canvas -->
+<main class="flex-grow flex items-center justify-center px-4 py-12">
+<div class="w-full max-w-[440px] flex flex-col gap-12">
+<!-- Logo & Brand Anchor -->
+<div class="flex flex-col items-center text-center gap-3">
+<div class="w-14 h-14 bg-surface-container-high rounded-xl flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="architecture">architecture</span>
+</div>
+<h1 class="font-headline text-3xl font-extrabold tracking-tighter text-on-surface">Stratos Management</h1>
+<p class="text-secondary label-md tracking-wide uppercase font-medium">Digital Studio &amp; Enterprise Hub</p>
+</div>
+<!-- Login Card -->
+<div class="bg-surface-container-lowest rounded-xl p-8 flex flex-col gap-8 shadow-[0px_12px_32px_rgba(25,28,29,0.04)]">
+<!-- Authentication Switcher -->
+<div class="flex p-1 bg-surface-container-low rounded-lg">
+<button class="flex-1 py-2 text-sm font-semibold rounded-md bg-surface-container-lowest text-primary shadow-sm">
+                        Standard Sign In
+                    </button>
+<button class="flex-1 py-2 text-sm font-medium text-secondary hover:text-on-surface transition-colors">
+                        LDAP / Enterprise
+                    </button>
+</div>
+<!-- Form Section -->
+<form class="flex flex-col gap-6">
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold tracking-[0.05em] uppercase text-secondary ml-1">Email or Username</label>
+<input class="w-full h-12 px-4 bg-surface-container-highest border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-all placeholder:text-outline outline-none" placeholder="name@company.com" type="text"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center ml-1">
+<label class="text-xs font-semibold tracking-[0.05em] uppercase text-secondary">Password</label>
+<a class="text-xs font-semibold text-primary hover:underline" href="#">Forgot Password?</a>
+</div>
+<div class="relative">
+<input class="w-full h-12 px-4 bg-surface-container-highest border-none rounded-lg focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-all placeholder:text-outline outline-none" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-secondary" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<button class="w-full h-12 btn-gradient text-white font-semibold rounded-lg hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2" type="submit">
+                        Sign In
+                        <span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</form>
+<div class="relative flex items-center justify-center">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-surface-container-highest"></div>
+</div>
+<span class="relative px-4 bg-surface-container-lowest text-xs font-medium text-secondary tracking-widest uppercase">New to Stratos?</span>
+</div>
+<button class="w-full h-12 bg-surface-container-low text-on-surface font-semibold rounded-lg hover:bg-surface-container-high transition-colors">
+                    Request an Account
+                </button>
+</div>
+<!-- Contextual Illustration (Subtle) -->
+<div class="hidden lg:block fixed right-0 top-0 w-1/3 h-full pointer-events-none opacity-20">
+<img alt="" class="w-full h-full object-cover" data-alt="Monochromatic high-angle architectural shot of clean white office building lines with dramatic natural shadows and geometric precision" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpV3mTGhItwagU_QpPUNFcdnVQRVGvjkMQ_7uQct8eQUEUf-Xrtc5jf9vN9KrKlOjTmCGGHMrwcyElzlImPiGxxFBRQ5dkpA7kU6i_fy1hNhEoH8eEuHyrA-yWYVsa6uz74kYcQaOxEA0uz0xXjTtq8ktEFsLdZRGXVECLKvCKJ8wdditSjS-XRs9O_1BwfmwRR1nDoyYG8d-ZWeuXv3F-AIZX9u3xeidID_UM48tXCo32t6Z9TdKcOM3Te_38-bFfXCOelrGDqAA"/>
+</div>
+</div>
+</main>
+<!-- Footer: Predicated from JSON -->
+<footer class="w-full bg-[#f8f9fa] dark:bg-gray-950">
+<div class="w-full flex flex-col md:flex-row justify-between items-center px-8 py-12 max-w-7xl mx-auto">
+<div class="flex flex-col gap-2 items-center md:items-start mb-8 md:mb-0">
+<span class="text-xl font-bold tracking-tighter text-gray-900 dark:text-white font-manrope">Stratos Management</span>
+<p class="text-gray-500 dark:text-gray-400 text-xs">© 2024 Kinetic Workspace. All rights reserved.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-x-8 gap-y-4">
+<a class="text-gray-500 dark:text-gray-400 label-sm uppercase tracking-[0.05em] hover:text-gray-900 dark:hover:text-white transition-colors duration-200" href="#">Privacy Policy</a>
+<a class="text-gray-500 dark:text-gray-400 label-sm uppercase tracking-[0.05em] hover:text-gray-900 dark:hover:text-white transition-colors duration-200" href="#">Terms of Service</a>
+<a class="text-gray-500 dark:text-gray-400 label-sm uppercase tracking-[0.05em] hover:text-gray-900 dark:hover:text-white transition-colors duration-200" href="#">Security</a>
+<a class="text-gray-500 dark:text-gray-400 label-sm uppercase tracking-[0.05em] hover:text-gray-900 dark:hover:text-white transition-colors duration-200" href="#">Help Center</a>
+</div>
+</div>
+</footer>
+</body></html>

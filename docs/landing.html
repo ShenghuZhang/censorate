@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "surface": "#f8f9fa",
+                  "tertiary-container": "#914d00",
+                  "inverse-primary": "#b2c5ff",
+                  "on-secondary-fixed": "#0b1c31",
+                  "on-secondary-container": "#54647b",
+                  "on-primary-container": "#ccd8ff",
+                  "tertiary": "#6e3900",
+                  "surface-container-highest": "#e1e3e4",
+                  "primary-container": "#0056d2",
+                  "tertiary-fixed": "#ffdcc3",
+                  "secondary-fixed": "#d3e3ff",
+                  "tertiary-fixed-dim": "#ffb77d",
+                  "surface-container": "#edeeef",
+                  "on-surface": "#191c1d",
+                  "error-container": "#ffdad6",
+                  "surface-container-low": "#f3f4f5",
+                  "primary-fixed": "#dae2ff",
+                  "on-primary-fixed-variant": "#0040a1",
+                  "on-primary-fixed": "#001847",
+                  "on-secondary": "#ffffff",
+                  "on-tertiary-container": "#ffd0ac",
+                  "surface-tint": "#0056d2",
+                  "on-surface-variant": "#424654",
+                  "on-error-container": "#93000a",
+                  "outline": "#737785",
+                  "surface-container-high": "#e7e8e9",
+                  "primary-fixed-dim": "#b2c5ff",
+                  "outline-variant": "#c3c6d6",
+                  "on-tertiary-fixed": "#2f1500",
+                  "error": "#ba1a1a",
+                  "surface-bright": "#f8f9fa",
+                  "on-background": "#191c1d",
+                  "background": "#f8f9fa",
+                  "surface-container-lowest": "#ffffff",
+                  "surface-dim": "#d9dadb",
+                  "on-secondary-fixed-variant": "#38485e",
+                  "on-error": "#ffffff",
+                  "secondary": "#4f5f77",
+                  "on-tertiary": "#ffffff",
+                  "primary": "#0040a1",
+                  "inverse-on-surface": "#f0f1f2",
+                  "on-primary": "#ffffff",
+                  "secondary-container": "#d0e1fd",
+                  "surface-variant": "#e1e3e4",
+                  "on-tertiary-fixed-variant": "#6e3900",
+                  "secondary-fixed-dim": "#b7c8e3",
+                  "inverse-surface": "#2e3132"
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.25rem",
+                  "lg": "0.5rem",
+                  "xl": "0.75rem",
+                  "full": "9999px"
+          },
+          "fontFamily": {
+                  "headline": ["Manrope"],
+                  "body": ["Inter"],
+                  "label": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .glass-effect {
+      background: rgba(225, 227, 228, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .primary-gradient {
+      background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%);
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="bg-surface font-body text-on-surface">
+<nav class="w-full top-0 sticky z-50 bg-slate-50 dark:bg-slate-900 font-['Manrope'] tracking-tight flex justify-between items-center h-16 px-8 w-full max-w-full">
+<div class="flex items-center gap-12">
+<span class="text-xl font-bold text-slate-900 dark:text-white">Stratos</span>
+<div class="hidden md:flex items-center space-x-8">
+<a class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-200 ease-in-out" href="#">Projects</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-200 ease-in-out" href="#">Team</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-200 ease-in-out" href="#">Reports</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1.5">
+<span class="material-symbols-outlined text-slate-400 text-sm">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm ml-2 w-48 text-on-surface placeholder-slate-400" placeholder="Search projects..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-500 dark:text-slate-400 hover:text-blue-600 transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="text-slate-500 dark:text-slate-400 hover:text-blue-600 transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden bg-slate-200">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Close-up portrait of a professional man in his 30s with a neutral expression and clean studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5XYvC8VuI5T0F-D5tZczND_tWhglVnLoHlt9s76vlC3Fgm4vtdlNH2Mbxy8p_jefr2roVy0HlgD02LEAmyHPBVSzHMnv_s8xBAbDa3mZRciI7IYwsPfD5_k6J3t4R-os6_8b5VAVsmsPI1op2qiUVMQF-ySa9g119akx71oP9xUIITtprpotSMdBhzye3TtqTPO8TPec9KBW76WbAoSE0RVqMBmWbobBp09JqknQ9yWOkL2UxJG_aneybiwzPT-amqMqtfueTDMg"/>
+</div>
+</div>
+</div>
+</nav>
+<main class="max-w-[1400px] mx-auto px-8 py-12">
+<header class="flex justify-between items-end mb-16">
+<div class="space-y-2">
+<h1 class="text-4xl font-extrabold font-headline tracking-tight text-on-surface">Workspace</h1>
+<p class="text-on-secondary-container font-medium">Select a project to continue your momentum.</p>
+</div>
+<button class="primary-gradient text-on-primary font-semibold px-6 py-3 rounded-lg flex items-center gap-2 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]">
+<span class="material-symbols-outlined">add</span>
+        New Project
+      </button>
+</header>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<div class="group bg-surface-container-lowest rounded-xl p-6 transition-all duration-300 hover:shadow-[0px_12px_32px_rgba(25,28,29,0.06)] flex flex-col h-[320px]">
+<div class="flex justify-between items-start mb-6">
+<div class="w-12 h-12 bg-primary-container/10 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">architecture</span>
+</div>
+<span class="bg-[#e8f5e9] text-[#2e7d32] text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full">ACTIVE</span>
+</div>
+<div class="flex-grow">
+<h3 class="text-xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">Project Alpha</h3>
+<p class="text-on-secondary-container text-sm leading-relaxed line-clamp-3">Strategic architectural overhaul of the core infrastructure to support multi-tenant high-availability cloud deployments.</p>
+</div>
+<div class="mt-auto pt-6 border-t border-transparent flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden">
+<img alt="Project Lead" class="w-full h-full object-cover" data-alt="Professional headshot of a male lead developer against a blurred office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBHOomTt6Mzy52FqvL2sA6Zknbp_q_GbPxCyN_DpbGNHgsly07J1xSDVjqZYTHvOW7mAJfhv57EZVtmta0_j_IA8ewLLk8OMNvCmZWH-loRSM36zDVqH3xl6NEpL4uPDOKuBMsvISvU4xAnoKpUAkEB2m3qn7o5EpS4lGnaIv1f17-e7r2f6WF9NrNJkt5qQgxLR2_DyJAiqVoADaN42bs96gagkCfhZAfCkYNRra5MbICRfhpTp4gnyxuzwF-xpDZqygnFXh9Cq4"/>
+</div>
+<div>
+<p class="text-[11px] font-bold text-on-secondary-container tracking-wider uppercase">Lead</p>
+<p class="text-xs font-semibold">David Chen</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-secondary-container">group</span>
+<span class="text-sm font-semibold text-on-secondary-container">12</span>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-lowest rounded-xl p-6 transition-all duration-300 hover:shadow-[0px_12px_32px_rgba(25,28,29,0.06)] flex flex-col h-[320px]">
+<div class="flex justify-between items-start mb-6">
+<div class="w-12 h-12 bg-tertiary-container/10 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</div>
+<span class="bg-[#fff3e0] text-[#e65100] text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full">IN REVIEW</span>
+</div>
+<div class="flex-grow">
+<h3 class="text-xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">Horizon Analytics</h3>
+<p class="text-on-secondary-container text-sm leading-relaxed line-clamp-3">Redesigning the data visualization engine to provide real-time kinetic insights for enterprise resource planning.</p>
+</div>
+<div class="mt-auto pt-6 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden">
+<img alt="Project Lead" class="w-full h-full object-cover" data-alt="Smiling young female manager with glasses, corporate setting with soft natural window lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1ENM090r4ZUPloa5scPvWzs5vO9EFERq5ZOpjk7r9OYSbY0FiYvTJKaVLevHp6FFKobyGdaxRVWtP893NoVqRk3he1PzOEIrr12-uoYp0QcOnxYkAZ2iCTc4x5LreeWkLVO-VRGHdUas5DfB0sK1P9zEQaj-y8uqNJEac8tiP7ubryBf_fC6uLfSU3Swp_lV0aTpDuTjmoBjf0XD1FiJm7OSZeI9YEE_WtoBcwpmd0bxhkDOSIX1uhnu3EljaweGDRLT8RELlI8I"/>
+</div>
+<div>
+<p class="text-[11px] font-bold text-on-secondary-container tracking-wider uppercase">Lead</p>
+<p class="text-xs font-semibold">Sarah Jenkins</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-secondary-container">group</span>
+<span class="text-sm font-semibold text-on-secondary-container">8</span>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-lowest rounded-xl p-6 transition-all duration-300 hover:shadow-[0px_12px_32px_rgba(25,28,29,0.06)] flex flex-col h-[320px]">
+<div class="flex justify-between items-start mb-6">
+<div class="w-12 h-12 bg-secondary-container/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">shield_with_heart</span>
+</div>
+<span class="bg-[#e8f5e9] text-[#2e7d32] text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full">ACTIVE</span>
+</div>
+<div class="flex-grow">
+<h3 class="text-xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">SecureBridge V2</h3>
+<p class="text-on-secondary-container text-sm leading-relaxed line-clamp-3">Enhanced security protocols and biometric integration for the next-generation authentication suite.</p>
+</div>
+<div class="mt-auto pt-6 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden">
+<img alt="Project Lead" class="w-full h-full object-cover" data-alt="Professional male portrait with beard, wearing a casual blazer, bright office aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYvbh1GAKsKH-XxRj5EcidS-xo4Qb2vq0NOwjbBuUKEgL5ICajzbcwkYna5Y6OmjLS3XlDLN71FwxE4g-vIKsPSm6xIlcZIMLnCDOSQZWQRKLGWe0ZF7AH-5L0xe_j8s_KCP8z7BI5mHkOlYnxNd8agNMDupd22YZx1KGLqm4eFPny097pKJgrP6UsoMbvqsNUm3Ex2NwkU_gxrqfNTFesH6apS9tHguKhupwdobd-wID5Wsk_LrMydrfXf71clhMwxJI8JSDPUAc"/>
+</div>
+<div>
+<p class="text-[11px] font-bold text-on-secondary-container tracking-wider uppercase">Lead</p>
+<p class="text-xs font-semibold">Marcus Thorne</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-secondary-container">group</span>
+<span class="text-sm font-semibold text-on-secondary-container">5</span>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-lowest rounded-xl p-6 transition-all duration-300 hover:shadow-[0px_12px_32px_rgba(25,28,29,0.06)] flex flex-col h-[320px]">
+<div class="flex justify-between items-start mb-6">
+<div class="w-12 h-12 bg-error-container/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+</div>
+<span class="bg-[#fce4ec] text-[#c2185b] text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full">ON HOLD</span>
+</div>
+<div class="flex-grow">
+<h3 class="text-xl font-bold font-headline mb-2 group-hover:text-primary transition-colors">Nova Launcher</h3>
+<p class="text-on-secondary-container text-sm leading-relaxed line-clamp-3">Experimental satellite tracking system utilizing low-latency edge computing nodes for global coverage.</p>
+</div>
+<div class="mt-auto pt-6 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden">
+<img alt="Project Lead" class="w-full h-full object-cover" data-alt="Confident female engineer in a lab setting, high-tech environment with blue accent lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBq7bB18u4-VIrQz6Ljv-iTM8pwEzlBZmTXIWUKE-A_GO4lRwwKHh16x_UU8-Xlk-yz2daK58FzSUtoepkSg-gNAXlrwhQ-SDceqS4JWid0KoM6sjlxH7e5_CYFRJN4Fw0PA_po4435uyOP6BS29EJcRo4e4pn3C52LHKOOHrYRJ0ZUKWbaR4qAI9Dz_4_6CEQlpxHrVd91tcSIPj5H6U1zWDymOK4tySMYxV4WBmCydfEo7dFlyaMqaIhpJ-yPDu5colRxMXmzBIA"/>
+</div>
+<div>
+<p class="text-[11px] font-bold text-on-secondary-container tracking-wider uppercase">Lead</p>
+<p class="text-xs font-semibold">Elena Rossi</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-secondary-container">group</span>
+<span class="text-sm font-semibold text-on-secondary-container">24</span>
+</div>
+</div>
+</div>
+<div class="group border-2 border-dashed border-outline-variant/30 rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 hover:border-primary-container/40 hover:bg-surface-container-low cursor-pointer h-[320px]">
+<div class="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl text-outline">add_circle</span>
+</div>
+<h4 class="text-lg font-bold font-headline mb-1">Start Fresh</h4>
+<p class="text-sm text-on-secondary-container max-w-[200px]">Create a new project environment and invite your team.</p>
+</div>
+</div>
+<section class="mt-24">
+<div class="flex items-center justify-between mb-8">
+<h2 class="text-2xl font-extrabold font-headline tracking-tight">Recent Activity</h2>
+<button class="text-sm font-semibold text-primary hover:underline">View History</button>
+</div>
+<div class="bg-surface-container-low rounded-2xl p-4 space-y-2">
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full primary-gradient flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-xl">commit</span>
+</div>
+<div>
+<p class="text-sm font-semibold"><span class="text-primary">David Chen</span> merged 4 pull requests into <span class="font-bold">Project Alpha</span></p>
+<p class="text-xs text-on-secondary-container mt-0.5">2 hours ago</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-secondary-container/40">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-xl">person_add</span>
+</div>
+<div>
+<p class="text-sm font-semibold"><span class="text-primary">Sarah Jenkins</span> invited 2 new members to <span class="font-bold">Horizon Analytics</span></p>
+<p class="text-xs text-on-secondary-container mt-0.5">5 hours ago</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-secondary-container/40">chevron_right</span>
+</div>
+</div>
+</section>
+</main>
+<footer class="mt-24 border-t-0 bg-surface-container-low py-12 px-8">
+<div class="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 primary-gradient rounded-sm"></div>
+<span class="font-headline font-extrabold tracking-tighter text-on-surface">Stratos</span>
+<span class="text-xs text-on-secondary-container ml-4">© 2024 Stratos Management Inc.</span>
+</div>
+<div class="flex gap-8">
+<a class="text-xs font-bold text-on-secondary-container tracking-widest uppercase hover:text-primary" href="#">Privacy</a>
+<a class="text-xs font-bold text-on-secondary-container tracking-widest uppercase hover:text-primary" href="#">Security</a>
+<a class="text-xs font-bold text-on-secondary-container tracking-widest uppercase hover:text-primary" href="#">Support</a>
+<a class="text-xs font-bold text-on-secondary-container tracking-widest uppercase hover:text-primary" href="#">API</a>
+</div>
+</div>
+</footer>
+<div class="fixed bottom-8 right-8 z-[100]">
+<div class="glass-effect p-2 rounded-full shadow-2xl flex flex-col gap-2">
+<button class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center text-on-surface hover:text-primary transition-colors shadow-md">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+</div>
+</div>
+</body></html>
