@@ -12,7 +12,7 @@ from app.schemas.auth import (
 )
 from app.services.auth_service import AuthService
 from app.core.security import get_current_user
-from app.core.exceptions import StratosException
+from app.core.exceptions import CensorateException
 from app.models.user import User
 
 router = APIRouter()

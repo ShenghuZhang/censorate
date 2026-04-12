@@ -1,5 +1,5 @@
 """
-Custom exceptions and error handling for Stratos API.
+Custom exceptions and error handling for Censorate API.
 """
 
 from typing import Any, Dict, Optional
@@ -7,8 +7,8 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 
-class StratosException(Exception):
-    """Base exception class for all Stratos exceptions."""
+class CensorateException(Exception):
+    """Base exception class for all Censorate exceptions."""
 
     status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
     detail: str = "Internal server error"
@@ -26,63 +26,63 @@ class StratosException(Exception):
         super().__init__(self.detail)
 
 
-class NotFoundException(StratosException):
+class NotFoundException(CensorateException):
     """Exception raised when a resource is not found."""
     status_code = status.HTTP_404_NOT_FOUND
     detail = "Resource not found"
     error_code = "NOT_FOUND"
 
 
-class ValidationException(StratosException):
+class ValidationException(CensorateException):
     """Exception raised when input validation fails."""
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     detail = "Validation error"
     error_code = "VALIDATION_ERROR"
 
 
-class ConflictException(StratosException):
+class ConflictException(CensorateException):
     """Exception raised when there's a conflict with the current state."""
     status_code = status.HTTP_409_CONFLICT
     detail = "Resource conflict"
     error_code = "CONFLICT"
 
 
-class ForbiddenException(StratosException):
+class ForbiddenException(CensorateException):
     """Exception raised when access is forbidden."""
     status_code = status.HTTP_403_FORBIDDEN
     detail = "Access forbidden"
     error_code = "FORBIDDEN"
 
 
-class UnauthorizedException(StratosException):
+class UnauthorizedException(CensorateException):
     """Exception raised when authentication is required."""
     status_code = status.HTTP_401_UNAUTHORIZED
     detail = "Unauthorized"
     error_code = "UNAUTHORIZED"
 
 
-class BadRequestException(StratosException):
+class BadRequestException(CensorateException):
     """Exception raised for invalid requests."""
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Bad request"
     error_code = "BAD_REQUEST"
 
 
-class StateTransitionException(StratosException):
+class StateTransitionException(CensorateException):
     """Exception raised when an invalid state transition is attempted."""
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Invalid state transition"
     error_code = "INVALID_TRANSITION"
 
 
-class AgentExecutionException(StratosException):
+class AgentExecutionException(CensorateException):
     """Exception raised when agent execution fails."""
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     detail = "Agent execution failed"
     error_code = "AGENT_ERROR"
 
 
-class LarkIntegrationException(StratosException):
+class LarkIntegrationException(CensorateException):
     """Exception raised when Lark integration fails."""
     status_code = status.HTTP_502_BAD_GATEWAY
     detail = "Lark integration error"
@@ -90,7 +90,7 @@ class LarkIntegrationException(StratosException):
 
 
 def create_error_response(
-    exception: StratosException,
+    exception: CensorateException,
     request: Optional[Request] = None
 ) -> Dict[str, Any]:
     """Create a standardized error response."""
@@ -111,8 +111,8 @@ def create_error_response(
     return response
 
 
-async def stratos_exception_handler(request: Request, exc: StratosException) -> JSONResponse:
-    """Global exception handler for Stratos exceptions."""
+async def censorate_exception_handler(request: Request, exc: CensorateException) -> JSONResponse:
+    """Global exception handler for Censorate exceptions."""
     return JSONResponse(
         status_code=exc.status_code,
         content=create_error_response(exc, request)
@@ -121,7 +121,7 @@ async def stratos_exception_handler(request: Request, exc: StratosException) -> 
 
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Fallback exception handler for unexpected errors."""
-    error = StratosException(
+    error = CensorateException(
         detail="An unexpected error occurred"
     )
     return JSONResponse(
@@ -132,5 +132,5 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 def register_exception_handlers(app):
     """Register all exception handlers with the FastAPI app."""
-    app.add_exception_handler(StratosException, stratos_exception_handler)
+    app.add_exception_handler(CensorateException, censorate_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)

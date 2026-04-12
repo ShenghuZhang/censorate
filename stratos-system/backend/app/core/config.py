@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable support."""
 
     # Application
-    APP_NAME: str = "Stratos API"
+    APP_NAME: str = "Censorate API"
     APP_VERSION: str = "1.0.0"
     API_PREFIX: str = "/api/v1"
     DEBUG: bool = True

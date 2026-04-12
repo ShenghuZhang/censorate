@@ -10,7 +10,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from app.core.exceptions import StratosException
+from app.core.exceptions import CensorateException
 
 from app.api.v1.router import api_router
 from app.core.config import Settings
@@ -59,11 +59,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown."""
-    logger.info("Starting Stratos Management System...")
+    logger.info("Starting Censorate Management System...")
     init_db()
     logger.info("Database initialized successfully")
     yield
-    logger.info("Shutting down Stratos Management System...")
+    logger.info("Shutting down Censorate Management System...")
 
 
 app = FastAPI(
@@ -132,7 +132,7 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 async def root():
     """Root endpoint."""
     return {
-        "message": "Stratos Management System API",
+        "message": "Censorate Management System API",
         "version": settings.APP_VERSION,
         "docs": "/docs"
     }

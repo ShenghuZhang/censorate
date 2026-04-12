@@ -1,7 +1,7 @@
 # Core module
 from .config import Settings
 from .exceptions import (
-    StratosException,
+    CensorateException,
     NotFoundException,
     ValidationException,
     ConflictException,
@@ -15,7 +15,7 @@ from .exceptions import (
 
 __all__ = [
     "Settings",
-    "StratosException",
+    "CensorateException",
     "NotFoundException",
     "ValidationException",
     "ConflictException",
