@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Stratos is an AI-native requirement management system organized by Projects with "AI First, Human Check" philosophy. The main working directory is `stratos-system/`.
+Censorate is an AI-native requirement management system organized by Projects with "AI First, Human Check" philosophy. The main working directory is `censorate-system/`.
 
 ## Quick Start Commands
 
@@ -27,7 +27,7 @@ Stratos is an AI-native requirement management system organized by Projects with
 ### Backend (FastAPI)
 
 ```bash
-cd stratos-system/backend
+cd censorate-system/backend
 
 # Start backend server (port 8216)
 python main.py
@@ -45,7 +45,7 @@ pytest
 ### Frontend (Next.js)
 
 ```bash
-cd stratos-system/frontend
+cd censorate-system/frontend
 
 # Start dev server (port 3000)
 npm run dev
@@ -61,11 +61,11 @@ npm install
 
 ```bash
 # Backend unit tests
-cd stratos-system/backend
+cd censorate-system/backend
 pytest
 
 # Frontend E2E tests (Playwright)
-cd stratos-system/frontend
+cd censorate-system/frontend
 npx playwright test
 ```
 
@@ -111,8 +111,8 @@ Model Layer (app/models/) - SQLAlchemy ORM
 1. **Port Configuration**: The backend runs on port 8216 (not 8026), frontend on 3000
 
 2. **Environment Variables**:
-   - Backend: `stratos-system/backend/.env` (use .env.example as template)
-   - Frontend: `stratos-system/frontend/.env.local` with `NEXT_PUBLIC_API_URL=http://localhost:8216/api/v1`
+   - Backend: `censorate-system/backend/.env` (use .env.example as template)
+   - Frontend: `censorate-system/frontend/.env.local` with `NEXT_PUBLIC_API_URL=http://localhost:8216/api/v1`
 
 3. **Project Types**:
    - Non-Technical: 4 lanes (Business requirements focused)
