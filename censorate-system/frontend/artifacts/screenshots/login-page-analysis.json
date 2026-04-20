@@ -1,0 +1,16 @@
+{
+  "url": "http://localhost:3000/login",
+  "title": "Censorate Management",
+  "hasLogo": true,
+  "hasEmailInput": true,
+  "hasPasswordInput": true,
+  "hasSubmitButton": true,
+  "hasLDAPButton": true,
+  "footerLinks": {
+    "forgotPassword": true,
+    "privacy": true,
+    "terms": true,
+    "security": true,
+    "helpCenter": true
+  }
+}
