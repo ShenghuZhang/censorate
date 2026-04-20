@@ -15,6 +15,31 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# 项目根目录 - 获取脚本所在目录的绝对路径
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="${SCRIPT_DIR}/censorate-system"
+
+# 验证项目目录是否存在
+if [ ! -d "${PROJECT_ROOT}" ]; then
+    echo -e "${RED}错误: 项目目录不存在: ${PROJECT_ROOT}${NC}"
+    echo -e "${YELLOW}当前脚本目录: ${SCRIPT_DIR}${NC}"
+    exit 1
+fi
+
+if [ ! -d "${PROJECT_ROOT}/backend" ]; then
+    echo -e "${RED}错误: 后端目录不存在: ${PROJECT_ROOT}/backend${NC}"
+    exit 1
+fi
+
+if [ ! -d "${PROJECT_ROOT}/frontend" ]; then
+    echo -e "${RED}错误: 前端目录不存在: ${PROJECT_ROOT}/frontend${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ 项目目录验证通过${NC}"
+echo "  - 项目根目录: ${PROJECT_ROOT}"
+echo ""
+
 # 检查命令是否可用
 check_command() {
     if ! command -v $1 &> /dev/null; then
@@ -59,7 +84,7 @@ check_python_version() {
 
 # 检查并创建虚拟环境
 setup_python_env() {
-    cd "$(dirname "$0")/backend"
+    cd "${PROJECT_ROOT}/backend"
 
     if [ ! -d "venv" ]; then
         echo -e "${GREEN}正在创建 Python 虚拟环境...${NC}"
@@ -70,7 +95,7 @@ setup_python_env() {
     source venv/bin/activate
 
     echo -e "${GREEN}正在安装 Python 依赖...${NC}"
-    pip install -r requirements.txt >/dev/null 2>&1
+    pip install -r requirements.txt
     if [ $? -ne 0 ]; then
         echo -e "${RED}错误: 依赖安装失败${NC}"
         exit 1
@@ -79,26 +104,28 @@ setup_python_env() {
 
 # 安装前端依赖
 setup_frontend() {
-    cd "$(dirname "$0")/frontend"
+    cd "${PROJECT_ROOT}/frontend"
 
     if [ ! -d "node_modules" ]; then
         echo -e "${GREEN}正在安装前端依赖...${NC}"
-        npm install >/dev/null 2>&1
+        npm install
         if [ $? -ne 0 ]; then
             echo -e "${RED}错误: 前端依赖安装失败${NC}"
             exit 1
         fi
+    else
+        echo -e "${GREEN}✓ 前端依赖已安装${NC}"
     fi
 }
 
 # 启动后端服务
 start_backend() {
-    cd "$(dirname "$0")/backend"
+    cd "${PROJECT_ROOT}/backend"
 
     echo -e "${GREEN}正在启动后端服务...${NC}"
     echo -e "${YELLOW}后端服务信息:${NC}"
-    echo "  - 地址: http://localhost:8026"
-    echo "  - API 文档: http://localhost:8026/docs"
+    echo "  - 地址: http://localhost:8216"
+    echo "  - API 文档: http://localhost:8216/docs"
     echo "  - 数据模型: PostgreSQL"
 
     source venv/bin/activate
@@ -111,12 +138,12 @@ start_backend() {
 
 # 启动前端服务
 start_frontend() {
-    cd "$(dirname "$0")/frontend"
+    cd "${PROJECT_ROOT}/frontend"
 
     echo -e "\n${GREEN}正在启动前端服务...${NC}"
     echo -e "${YELLOW}前端服务信息:${NC}"
     echo "  - 地址: http://localhost:3000"
-    echo "  - 框架: Next.js 14"
+    echo "  - 框架: Next.js 16"
     echo "  - 状态: 已成功构建"
 
     npm run dev &
@@ -134,7 +161,7 @@ check_services() {
     sleep 5
 
     # 检查后端服务
-    if curl -f http://localhost:8026/docs >/dev/null 2>&1; then
+    if curl -f http://localhost:8216/docs >/dev/null 2>&1; then
         echo -e "${GREEN}✅ 后端服务已成功启动${NC}"
     else
         echo -e "${RED}❌ 后端服务启动失败${NC}"
@@ -160,8 +187,8 @@ display_info() {
     echo ""
     echo -e "${YELLOW}🌐 访问地址:${NC}"
     echo "   - 前端应用: http://localhost:3000"
-    echo "   - 后端 API: http://localhost:8026"
-    echo "   - API 文档: http://localhost:8026/docs"
+    echo "   - 后端 API: http://localhost:8216"
+    echo "   - API 文档: http://localhost:8216/docs"
     echo ""
     echo -e "${YELLOW}🚀 核心功能:${NC}"
     echo "   - 看板视图: 需求的可视化管理"
@@ -178,6 +205,8 @@ display_info() {
 # 停止服务
 stop_services() {
     echo -e "${GREEN}正在停止服务...${NC}"
+
+    cd "${PROJECT_ROOT}"
 
     # 停止后端服务
     if [ -f "backend/backend.pid" ]; then
@@ -209,7 +238,7 @@ check_status() {
     echo -e "${GREEN}检查服务状态:${NC}"
 
     # 检查后端服务
-    if curl -f http://localhost:8026/docs >/dev/null 2>&1; then
+    if curl -f http://localhost:8216/docs >/dev/null 2>&1; then
         echo -e "${GREEN}✅ 后端服务运行正常${NC}"
     else
         echo -e "${RED}❌ 后端服务未运行${NC}"
@@ -237,7 +266,7 @@ main() {
 
             # 检查端口
             check_port 3000
-            check_port 8026
+            check_port 8216
 
             # 设置环境
             setup_python_env
@@ -272,7 +301,7 @@ main() {
             check_python_version
 
             check_port 3000
-            check_port 8026
+            check_port 8216
 
             setup_python_env
             setup_frontend

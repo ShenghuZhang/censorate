@@ -11,6 +11,17 @@ from .auth import (
     LoginRequest, RegisterRequest, TokenResponse,
     AuthResponse, UserResponse, ChangePasswordRequest
 )
+from .remote_agent import (
+    RemoteAgentCreate, RemoteAgentUpdate, RemoteAgentResponse,
+    HealthCheckResponse, AgentChatRequest, AgentChatResponse
+)
+from .skill import (
+    SkillCreate, SkillUpdate, SkillResponse, SkillListResponse,
+    SkillVersionCreate, SkillVersionUpdate, SkillVersionResponse,
+    SkillFileResponse, SkillSearchQuery, SkillSearchResult, SkillSearchResponse,
+    SkillUploadMetadata, SkillUploadResponse, SkillDownloadRecord,
+    CategoryListResponse, SkillStatsResponse
+)
 
 __all__ = [
     "ProjectCreate", "ProjectUpdate", "ProjectResponse",
@@ -20,5 +31,12 @@ __all__ = [
     "ThreadCreate", "AgentExecutionRequest", "AgentMemoryUpdate",
     "TestCaseCreate", "TestCaseUpdate", "TestCaseResponse",
     "LoginRequest", "RegisterRequest", "TokenResponse",
-    "AuthResponse", "UserResponse", "ChangePasswordRequest"
+    "AuthResponse", "UserResponse", "ChangePasswordRequest",
+    "RemoteAgentCreate", "RemoteAgentUpdate", "RemoteAgentResponse",
+    "HealthCheckResponse", "AgentChatRequest", "AgentChatResponse",
+    "SkillCreate", "SkillUpdate", "SkillResponse", "SkillListResponse",
+    "SkillVersionCreate", "SkillVersionUpdate", "SkillVersionResponse",
+    "SkillFileResponse", "SkillSearchQuery", "SkillSearchResult", "SkillSearchResponse",
+    "SkillUploadMetadata", "SkillUploadResponse", "SkillDownloadRecord",
+    "CategoryListResponse", "SkillStatsResponse"
 ]

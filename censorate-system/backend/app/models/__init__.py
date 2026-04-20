@@ -10,6 +10,8 @@ from .team_member import TeamMember
 from .lane_role import LaneRole
 from .agent_execution import AgentExecution
 from .automation_rule import AutomationRule
+from .remote_agent import RemoteAgent
+from .skill import Skill, SkillVersion, SkillFile, SkillDownload
 
 __all__ = [
     "BaseModel",
@@ -22,5 +24,10 @@ __all__ = [
     "TeamMember",
     "LaneRole",
     "AgentExecution",
-    "AutomationRule"
+    "AutomationRule",
+    "RemoteAgent",
+    "Skill",
+    "SkillVersion",
+    "SkillFile",
+    "SkillDownload"
 ]

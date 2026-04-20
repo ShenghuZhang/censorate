@@ -59,6 +59,15 @@ class Settings(BaseSettings):
     LARK_ENCRYPT_KEY: str = ""
     LARK_VERIFICATION_TOKEN: str = ""
 
+    # Skills directory
+    SKILLS_DIR: str = "app/skills"
+    SKILL_STORAGE_DIR: str = "app/storage/skills"
+
+    # Skill upload limits
+    MAX_FILE_SIZE: int = 1024 * 1024  # 1MB per file
+    MAX_TOTAL_SIZE: int = 10 * 1024 * 1024  # 10MB total
+    ALLOWED_EXTENSIONS: list = [".md", ".json", ".yaml", ".yml", ".txt", ".py", ".zip"]
+
     model_config = {
         "env_file": ".env",
         "case_sensitive": True

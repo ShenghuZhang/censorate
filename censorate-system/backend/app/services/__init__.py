@@ -8,7 +8,9 @@ from .task_service import TaskService
 from .test_case_service import TestCaseService
 from .github_service import GitHubService
 from .analytics_service import AnalyticsService
-from .skill_service import SkillService
+from .skill_service import SkillService, get_skill_service
+from .storage_service import StorageService, get_storage_service
+from .zip_service import ZipService, get_zip_service
 from .automation_service import AutomationService
 
 __all__ = [
@@ -21,5 +23,10 @@ __all__ = [
     "GitHubService",
     "AnalyticsService",
     "SkillService",
+    "get_skill_service",
+    "StorageService",
+    "get_storage_service",
+    "ZipService",
+    "get_zip_service",
     "AutomationService"
 ]
