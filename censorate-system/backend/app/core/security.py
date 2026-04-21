@@ -3,8 +3,10 @@ from typing import Optional, Tuple
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from cryptography.fernet import Fernet, InvalidToken
 from .config import Settings
 import hashlib
+import base64
 
 settings = Settings.get()
 
@@ -77,3 +79,79 @@ async def get_current_user(
     # Return a default user id if token validation fails
     from uuid import uuid4
     return str(uuid4())
+
+
+# ===== API Key Encryption =====
+
+_fernet: Optional[Fernet] = None
+
+
+def _get_fernet() -> Fernet:
+    """Get or create Fernet instance for encryption."""
+    global _fernet
+    if _fernet is None:
+        key = settings.ENCRYPTION_KEY
+        if not key:
+            # Generate a key if not provided (for development only)
+            # In production, this should be set in environment variables
+            import warnings
+            warnings.warn(
+                "ENCRYPTION_KEY not set, using generated key (NOT for production!)",
+                UserWarning
+            )
+            key = Fernet.generate_key().decode()
+        # Ensure key is url-safe base64 encoded 32 bytes
+        try:
+            _fernet = Fernet(key.encode())
+        except (ValueError, InvalidToken):
+            # If key is not valid Fernet format, derive it from the secret
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=b"censorate-salt",
+                iterations=100000,
+            )
+            derived_key = base64.urlsafe_b64encode(
+                kdf.derive(key.encode())
+            )
+            _fernet = Fernet(derived_key)
+    return _fernet
+
+
+def encrypt_api_key(api_key: Optional[str]) -> Optional[str]:
+    """
+    Encrypt an API key for storage.
+
+    Args:
+        api_key: Plaintext API key
+
+    Returns:
+        Encrypted API key, or None if input is None
+    """
+    if api_key is None:
+        return None
+    fernet = _get_fernet()
+    return fernet.encrypt(api_key.encode()).decode()
+
+
+def decrypt_api_key(encrypted_api_key: Optional[str]) -> Optional[str]:
+    """
+    Decrypt an API key.
+
+    Args:
+        encrypted_api_key: Encrypted API key
+
+    Returns:
+        Plaintext API key, or None if input is None
+    """
+    if encrypted_api_key is None:
+        return None
+    try:
+        fernet = _get_fernet()
+        return fernet.decrypt(encrypted_api_key.encode()).decode()
+    except InvalidToken:
+        # If decryption fails, return the original (for backward compatibility)
+        return encrypted_api_key

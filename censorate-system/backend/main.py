@@ -17,6 +17,7 @@ from app.core.config import Settings
 from app.core.database import init_db
 from app.core.logger import get_logger
 from app.core.exceptions import register_exception_handlers
+from app.core.scheduler import health_scheduler_lifespan
 
 settings = Settings.get()
 logger = get_logger(__name__)
@@ -62,7 +63,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Censorate Management System...")
     init_db()
     logger.info("Database initialized successfully")
-    yield
+
+    # Start health scheduler
+    async with health_scheduler_lifespan():
+        yield
+
     logger.info("Shutting down Censorate Management System...")
 
 

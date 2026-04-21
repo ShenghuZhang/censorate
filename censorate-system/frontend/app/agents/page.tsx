@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '@/app/components/layout/Layout';
 import { Bot, Plus, RefreshCw, MessageSquare, Trash2, Edit2, Settings, Activity } from 'lucide-react';
 import { remoteAgentsAPI, type RemoteAgent } from '@/lib/api/remoteAgents';
+import { useProjectStore } from '@/app/stores/projectStore';
+import { useAuth } from '@/app/hooks/useAuth';
 import { clsx } from 'clsx';
 
 type AgentStatus = 'online' | 'offline' | 'error';
@@ -34,6 +36,8 @@ export default function AgentsPage() {
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'agent'; content: string; timestamp: string }>>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatThreadId, setChatThreadId] = useState<string | undefined>();
+  const { currentProject } = useProjectStore();
+  const { user } = useAuth();
   const [isSending, setIsSending] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     name: '',
@@ -44,6 +48,17 @@ export default function AgentsPage() {
     healthCheckInterval: 30,
     description: '',
     capabilities: '' as string,
+  });
+
+  const [editForm, setEditForm] = useState({
+    name: '',
+    agentType: 'custom' as const,
+    endpointUrl: '',
+    healthCheckPath: '/health',
+    apiKey: '',
+    healthCheckInterval: 30,
+    description: '',
+    capabilities: '',
   });
 
   const loadAgents = useCallback(async () => {
@@ -114,6 +129,38 @@ export default function AgentsPage() {
     }
   };
 
+  const handleEdit = async () => {
+    if (!showEdit) return;
+
+    try {
+      await remoteAgentsAPI.updateAgent(showEdit.id, {
+        ...editForm,
+        capabilities: editForm.capabilities.split(',').map(s => s.trim()).filter(Boolean),
+      });
+      setShowEdit(null);
+      await loadAgents();
+    } catch (error) {
+      console.error('Failed to update agent:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update agent');
+    }
+  };
+
+  // Populate edit form when showEdit changes
+  useEffect(() => {
+    if (showEdit) {
+      setEditForm({
+        name: showEdit.name || '',
+        agentType: showEdit.agentType || 'custom',
+        endpointUrl: showEdit.endpointUrl || '',
+        healthCheckPath: showEdit.healthCheckPath || '/health',
+        apiKey: '', // Don't populate API key for security
+        healthCheckInterval: showEdit.healthCheckInterval || 30,
+        description: showEdit.description || '',
+        capabilities: (showEdit.capabilities || []).join(', '),
+      });
+    }
+  }, [showEdit]);
+
   const handleSendMessage = async () => {
     if (!showChat || !chatInput.trim() || isSending) return;
 
@@ -130,9 +177,14 @@ export default function AgentsPage() {
     setChatMessages(prev => [...prev, userMessage]);
 
     try {
+      // Use project ID if available, otherwise use user ID for session continuity
+      const sessionProjectId = currentProject?.id;
+      const sessionUserId = user?.id;
+
       const response = await remoteAgentsAPI.sendMessage(showChat.id, {
         message,
         threadId: chatThreadId,
+        projectId: sessionProjectId || sessionUserId,
       });
 
       setChatThreadId(response.threadId);
@@ -411,21 +463,142 @@ export default function AgentsPage() {
           </div>
         )}
 
+        {/* Edit Dialog */}
+        {showEdit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setShowEdit(null)} />
+            <div className="relative bg-white rounded-xl shadow-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Edit Agent</h2>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                      placeholder="My Agent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
+                    <select
+                      value={editForm.agentType}
+                      onChange={(e) => setEditForm({ ...editForm, agentType: e.target.value as any })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                    >
+                      <option value="hermes">Hermes</option>
+                      <option value="openclaw">OpenClaw</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Endpoint URL</label>
+                  <input
+                    type="text"
+                    value={editForm.endpointUrl}
+                    onChange={(e) => setEditForm({ ...editForm, endpointUrl: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                    placeholder="http://localhost:8000"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Health Check Path</label>
+                    <input
+                      type="text"
+                      value={editForm.healthCheckPath}
+                      onChange={(e) => setEditForm({ ...editForm, healthCheckPath: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                      placeholder="/health"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Check Interval (sec)</label>
+                    <input
+                      type="number"
+                      value={editForm.healthCheckInterval}
+                      onChange={(e) => setEditForm({ ...editForm, healthCheckInterval: parseInt(e.target.value) || 30 })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                      min="10"
+                      max="300"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">API Key (leave blank to keep unchanged)</label>
+                  <input
+                    type="password"
+                    value={editForm.apiKey}
+                    onChange={(e) => setEditForm({ ...editForm, apiKey: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                    placeholder="sk-..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    rows={2}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none"
+                    placeholder="Agent description..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Capabilities (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={editForm.capabilities}
+                    onChange={(e) => setEditForm({ ...editForm, capabilities: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                    placeholder="analysis, coding, review"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowEdit(null)}
+                  className="px-4 py-2.5 text-gray-600 hover:text-gray-900 font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEdit}
+                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Chat Dialog */}
         {showChat && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="fixed inset-0 bg-black/50" onClick={() => setShowChat(null)} />
             <div className="relative bg-white rounded-xl shadow-lg max-w-2xl w-full h-[600px] flex flex-col">
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <Bot size={20} className="text-white" />
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                      <Bot size={20} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900">{showChat.name}</h3>
+                      <HealthStatusBadge status={showChat.status} />
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">{showChat.name}</h3>
-                    <HealthStatusBadge status={showChat.status} />
-                  </div>
-                </div>
                 <button
                   onClick={() => setShowChat(null)}
                   className="text-gray-400 hover:text-gray-600"
@@ -433,6 +606,20 @@ export default function AgentsPage() {
                   ✕
                 </button>
               </div>
+              {currentProject ? (
+                <div className="mt-3 px-3 py-2 bg-blue-50 rounded-lg text-sm">
+                  <span className="text-blue-600 font-medium">Project:</span>
+                  <span className="text-blue-800 ml-2">{currentProject.name}</span>
+                  <span className="text-blue-400 ml-2 text-xs">(Session linked to project)</span>
+                </div>
+              ) : user ? (
+                <div className="mt-3 px-3 py-2 bg-purple-50 rounded-lg text-sm">
+                  <span className="text-purple-600 font-medium">User:</span>
+                  <span className="text-purple-800 ml-2">{user.name}</span>
+                  <span className="text-purple-400 ml-2 text-xs">(Session linked to user)</span>
+                </div>
+              ) : null}
+            </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {chatMessages.length === 0 ? (

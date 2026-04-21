@@ -63,6 +63,12 @@ class Settings(BaseSettings):
     SKILLS_DIR: str = "app/skills"
     SKILL_STORAGE_DIR: str = "app/storage/skills"
 
+    # Encryption (for API keys)
+    ENCRYPTION_KEY: str = ""
+
+    # Scheduler
+    SCHEDULER_ENABLED: bool = True
+
     # Skill upload limits
     MAX_FILE_SIZE: int = 1024 * 1024  # 1MB per file
     MAX_TOTAL_SIZE: int = 10 * 1024 * 1024  # 10MB total

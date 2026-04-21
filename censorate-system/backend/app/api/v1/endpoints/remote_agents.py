@@ -1,14 +1,17 @@
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.remote_agent import RemoteAgent
 from app.schemas.remote_agent import (
     RemoteAgentCreate, RemoteAgentUpdate, RemoteAgentResponse,
-    HealthCheckResponse, AgentChatRequest, AgentChatResponse
+    HealthCheckResponse, AgentChatRequest, AgentChatResponse,
+    RemoteAgentHealthHistoryResponse, RemoteAgentWithHistoryResponse,
+    AgentAcknowledgement, AgentThresholdUpdate
 )
+from app.services.remote_agent_service import get_remote_agent_service
 import httpx
 import json
 import asyncio
@@ -67,6 +70,32 @@ def get_remote_agent(agent_id: str, db: Session = Depends(get_db)):
     return agent
 
 
+@router.get("/remote-agents/{agent_id}/with-history", response_model=RemoteAgentWithHistoryResponse)
+def get_remote_agent_with_history(
+    agent_id: str,
+    history_limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Get a remote agent by ID with recent health history."""
+    agent = db.query(RemoteAgent).filter(
+        RemoteAgent.id == agent_id,
+        RemoteAgent.archived_at.is_(None)
+    ).first()
+    if not agent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Remote agent not found"
+        )
+
+    service = get_remote_agent_service()
+    history = service.get_health_history(db, agent_id, limit=history_limit)
+
+    return RemoteAgentWithHistoryResponse(
+        **RemoteAgentResponse.model_validate(agent).model_dump(),
+        recent_health_history=history
+    )
+
+
 @router.put("/remote-agents/{agent_id}", response_model=RemoteAgentResponse)
 def update_remote_agent(
     agent_id: str,
@@ -114,31 +143,6 @@ def unregister_remote_agent(agent_id: str, db: Session = Depends(get_db)):
 # --- Health Check ---
 
 
-async def _check_agent_health(agent: RemoteAgent) -> tuple[str, int | None, str | None]:
-    """Internal health check function."""
-    health_url = f"{agent.endpoint_url.rstrip('/')}{agent.health_check_path}"
-    start_time = datetime.now(timezone.utc)
-
-    try:
-        timeout = httpx.Timeout(5.0, connect=2.0)
-        headers = {}
-        if agent.api_key:
-            headers["Authorization"] = f"Bearer {agent.api_key}"
-
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.get(health_url, headers=headers)
-            response.raise_for_status()
-
-        response_time = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
-        return "online", response_time, None
-    except httpx.HTTPStatusError as e:
-        return "error", None, f"HTTP {e.response.status_code}"
-    except httpx.TimeoutException:
-        return "offline", None, "Connection timeout"
-    except Exception as e:
-        return "error", None, str(e)
-
-
 @router.post("/remote-agents/{agent_id}/health", response_model=HealthCheckResponse)
 async def check_agent_health(agent_id: str, db: Session = Depends(get_db)):
     """Trigger a health check for a specific agent."""
@@ -152,10 +156,11 @@ async def check_agent_health(agent_id: str, db: Session = Depends(get_db)):
             detail="Remote agent not found"
         )
 
-    status_str, response_time, message = await _check_agent_health(agent)
-    agent.status = status_str
-    agent.last_health_check = datetime.utcnow()
-    db.commit()
+    service = get_remote_agent_service()
+    status_str, response_time, message = await service.check_agent_health(agent)
+
+    # Use enhanced update_agent_status that records history and manages alerts
+    service.update_agent_status(db, agent, status_str, response_time, message)
 
     return HealthCheckResponse(
         status=status_str,
@@ -172,15 +177,89 @@ async def check_all_agents_health(background_tasks: BackgroundTasks, db: Session
         RemoteAgent.archived_at.is_(None)
     ).all()
 
-    async def check_all():
-        for agent in agents:
-            status_str, _, _ = await _check_agent_health(agent)
-            agent.status = status_str
-            agent.last_health_check = datetime.utcnow()
-        db.commit()
+    service = get_remote_agent_service()
 
-    background_tasks.add_task(lambda: asyncio.create_task(check_all()))
+    async def check_all_and_update():
+        """Check all agents health in parallel and update database."""
+        results = await service.check_all_agents_health(agents)
+        for agent, status_str, response_time, error in results:
+            # Use enhanced update that records history
+            service.update_agent_status(db, agent, status_str, response_time, error)
+
+    # Add proper background task (no lambda wrapper)
+    background_tasks.add_task(check_all_and_update)
+
     return {"status": "started", "count": len(agents)}
+
+
+# --- Health History ---
+
+
+@router.get("/remote-agents/{agent_id}/health-history", response_model=List[RemoteAgentHealthHistoryResponse])
+def get_agent_health_history(
+    agent_id: str,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    """Get health check history for a specific agent."""
+    # Verify agent exists
+    agent = db.query(RemoteAgent).filter(
+        RemoteAgent.id == agent_id,
+        RemoteAgent.archived_at.is_(None)
+    ).first()
+    if not agent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Remote agent not found"
+        )
+
+    service = get_remote_agent_service()
+    history = service.get_health_history(db, agent_id, limit=limit, offset=offset)
+    return history
+
+
+@router.post("/remote-agents/{agent_id}/acknowledge-alert", response_model=RemoteAgentResponse)
+def acknowledge_agent_alert(
+    agent_id: str,
+    data: AgentAcknowledgement,
+    db: Session = Depends(get_db)
+):
+    """Acknowledge an alert for an agent."""
+    service = get_remote_agent_service()
+    try:
+        agent = service.acknowledge_alert(db, agent_id, data.acknowledged_by)
+        return agent
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+
+
+@router.put("/remote-agents/{agent_id}/thresholds", response_model=RemoteAgentResponse)
+def update_agent_thresholds(
+    agent_id: str,
+    data: AgentThresholdUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update alert thresholds for an agent."""
+    service = get_remote_agent_service()
+    try:
+        agent = service.update_alert_thresholds(
+            db,
+            agent_id,
+            alert_after_consecutive_failures=data.alert_after_consecutive_failures,
+            alert_after_offline_minutes=data.alert_after_offline_minutes,
+            warning_latency_ms=data.warning_latency_ms,
+            critical_latency_ms=data.critical_latency_ms
+        )
+        return agent
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
 
 
 # --- Chat ---
@@ -209,34 +288,93 @@ async def send_chat_message(
             detail="Agent is not online"
         )
 
-    # Send message to agent endpoint
-    chat_url = f"{agent.endpoint_url.rstrip('/')}/chat"
-    headers = {"Content-Type": "application/json"}
-    if agent.api_key:
-        headers["Authorization"] = f"Bearer {agent.api_key}"
-
+    # Create a fresh client without http2 for better compatibility
+    # (similar to health check implementation)
     try:
-        timeout = httpx.Timeout(60.0, connect=5.0)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
-                chat_url,
-                headers=headers,
-                json={
-                    "message": request.message,
-                    "thread_id": request.thread_id,
+        timeout = httpx.Timeout(120.0, connect=5.0)
+        headers = {"Content-Type": "application/json"}
+        # Use the property getter which automatically decrypts
+        if agent.api_key:
+            headers["Authorization"] = f"Bearer {agent.api_key}"
+
+        # Use fresh client with HTTP/2 disabled for better compatibility
+        async with httpx.AsyncClient(timeout=timeout, http2=False) as client:
+            # Check agent type to determine chat endpoint format
+            if agent.agent_type == "hermes":
+                # Hermes agent uses OpenAI compatible format
+                chat_url = f"{agent.endpoint_url.rstrip('/')}/v1/chat/completions"
+
+                # Use project_id as X-Hermes-Session-Id for continuity, fallback to thread_id
+                session_id = request.project_id or request.thread_id
+                if session_id:
+                    headers["X-Hermes-Session-Id"] = session_id
+
+                # Build Hermes compatible request
+                hermes_request = {
+                    "model": "hermes-agent",
+                    "messages": [
+                        {"role": "user", "content": request.message}
+                    ],
                     **(request.config or {})
                 }
+
+                response = await client.post(
+                    chat_url,
+                    headers=headers,
+                    json=hermes_request,
+                    timeout=timeout
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                # Parse OpenAI compatible response
+                response_text = "No response"
+                if result.get("choices") and len(result["choices"]) > 0:
+                    choice = result["choices"][0]
+                    if choice.get("message"):
+                        response_text = choice["message"].get("content", response_text)
+                    elif choice.get("text"):
+                        response_text = choice.get("text", response_text)
+
+                thread_id = request.thread_id or f"thread-{agent_id}-{int(datetime.utcnow().timestamp())}"
+
+            else:
+                # Custom agent format
+                chat_url = f"{agent.endpoint_url.rstrip('/')}/chat"
+
+                response = await client.post(
+                    chat_url,
+                    headers=headers,
+                    json={
+                        "message": request.message,
+                        "thread_id": request.thread_id,
+                        **(request.config or {})
+                    },
+                    timeout=timeout
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                response_text = result.get("response", result.get("message", "No response"))
+                thread_id = result.get("thread_id", request.thread_id or f"thread-{agent_id}-{int(datetime.utcnow().timestamp())}")
+
+            return AgentChatResponse(
+                response=response_text,
+                thread_id=thread_id,
+                agent_id=agent.id,
+                timestamp=datetime.utcnow()
             )
-            response.raise_for_status()
-            result = response.json()
-
-        thread_id = result.get("thread_id", request.thread_id or f"thread-{agent_id}-{int(datetime.utcnow().timestamp())}")
-
-        return AgentChatResponse(
-            response=result.get("response", result.get("message", "No response")),
-            thread_id=thread_id,
-            agent_id=agent.id,
-            timestamp=datetime.utcnow()
+    except httpx.HTTPStatusError as e:
+        error_detail = f"Agent returned error: {e.response.status_code}"
+        try:
+            error_data = e.response.json()
+            if error_data.get("error"):
+                error_detail += f" - {error_data['error'].get('message', str(error_data['error']))}"
+        except:
+            pass
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_detail
         )
     except Exception as e:
         raise HTTPException(
