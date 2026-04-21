@@ -8,6 +8,9 @@ from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 
 router = APIRouter()
 
+# Default swimlane configuration
+DEFAULT_SWIMLANES = ["Backlog", "Todo", "In Review", "Done"]
+
 
 @router.get("", response_model=List[ProjectResponse])
 def list_projects(db: Session = Depends(get_db)):
@@ -23,13 +26,23 @@ def create_project(
 ):
     """Create a new project."""
     slug = project_in.name.lower().replace(" ", "-")
+
+    # Build settings
+    settings = {}
+    if project_in.settings:
+        settings = project_in.settings.model_dump(exclude_unset=True)
+
+    # Set default swimlanes if not provided
+    if "swimlanes" not in settings:
+        settings["swimlanes"] = DEFAULT_SWIMLANES
+
     project = Project(
         name=project_in.name,
         slug=slug,
         description=project_in.description,
         project_type=project_in.project_type,
         created_by="default-user",
-        settings={}
+        settings=settings
     )
     db.add(project)
     db.commit()
@@ -70,6 +83,14 @@ def update_project(
         )
 
     update_data = project_in.model_dump(exclude_unset=True)
+
+    # Handle settings merge (not overwrite)
+    if "settings" in update_data:
+        new_settings = update_data.pop("settings")
+        # Merge with existing settings
+        project.settings = {**project.settings, **new_settings}
+
+    # Handle other fields
     for field, value in update_data.items():
         setattr(project, field, value)
 

@@ -34,16 +34,18 @@ interface CreateProjectDialogProps {
   isLoading: boolean;
 }
 
+import SwimlaneSelector, { DEFAULT_LANES } from '@/app/components/settings/SwimlaneSelector';
+
 function CreateProjectDialog({ isOpen, onClose, onSubmit, isLoading }: CreateProjectDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [projectType, setProjectType] = useState<'non_technical' | 'technical'>('non_technical');
+  const [swimlanes, setSwimlanes] = useState<string[]>(DEFAULT_LANES);
 
   useEffect(() => {
     if (!isOpen) {
       setName('');
       setDescription('');
-      setProjectType('non_technical');
+      setSwimlanes(DEFAULT_LANES);
     }
   }, [isOpen]);
 
@@ -51,7 +53,12 @@ function CreateProjectDialog({ isOpen, onClose, onSubmit, isLoading }: CreatePro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({ name, description, project_type: projectType });
+    await onSubmit({
+      name,
+      description,
+      project_type: 'non_technical',
+      settings: { swimlanes }
+    });
   };
 
   return (
@@ -98,74 +105,7 @@ function CreateProjectDialog({ isOpen, onClose, onSubmit, isLoading }: CreatePro
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Project Type
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setProjectType('non_technical')}
-                className={clsx(
-                  "flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left",
-                  projectType === 'non_technical'
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                )}
-              >
-                <div className={clsx(
-                  "w-8 h-8 rounded-lg flex items-center justify-center",
-                  projectType === 'non_technical'
-                    ? "bg-gradient-to-br from-amber-400 to-orange-500 text-white"
-                    : "bg-gray-200 text-gray-500"
-                )}>
-                  <FolderKanban className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className={clsx(
-                    "font-medium text-sm",
-                    projectType === 'non_technical' ? "text-gray-900" : "text-gray-600"
-                  )}>
-                    Business
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    Non-technical
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setProjectType('technical')}
-                className={clsx(
-                  "flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left",
-                  projectType === 'technical'
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                )}
-              >
-                <div className={clsx(
-                  "w-8 h-8 rounded-lg flex items-center justify-center",
-                  projectType === 'technical'
-                    ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white"
-                    : "bg-gray-200 text-gray-500"
-                )}>
-                  <FolderKanban className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className={clsx(
-                    "font-medium text-sm",
-                    projectType === 'technical' ? "text-gray-900" : "text-gray-600"
-                  )}>
-                    Technical
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    Software dev
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
+          <SwimlaneSelector value={swimlanes} onChange={setSwimlanes} />
 
           <div className="flex gap-3 pt-2">
             <button

@@ -13,19 +13,43 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { useRequirementStore } from '@/app/stores/requirementStore';
+import { useProjectStore } from '@/app/stores/projectStore';
 import { Plus, MoreHorizontal, Filter, List, Layout } from 'lucide-react';
 import Swimlane from './Swimlane';
 import RequirementCard from './RequirementCard';
 
-const SWIMLANES = [
-  { id: 'backlog', title: 'Backlog', color: 'bg-gray-50/50', badgeColor: 'bg-gray-600 text-white' },
-  { id: 'todo', title: 'Todo', color: 'bg-gray-50/50', badgeColor: 'bg-gray-600 text-white' },
-  { id: 'in_review', title: 'In Review', color: 'bg-amber-50/50', badgeColor: 'bg-amber-600 text-white' },
-  { id: 'done', title: 'Done', color: 'bg-green-50/50', badgeColor: 'bg-green-600 text-white' },
-];
+// Default swimlane configuration
+const DEFAULT_SWIMLANES = ['Backlog', 'Todo', 'In Review', 'Done'];
+
+// Convert display name to valid ID (snake_case)
+function slugifyLaneName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '_')
+    .replace(/^_|_$/g, '')
+    || `lane_${Date.now()}`;
+}
+
+// Get lane colors based on index
+function getLaneColors(index: number, total: number) {
+  if (index === 0) {
+    return { color: 'bg-gray-50/50', badgeColor: 'bg-gray-600 text-white' };
+  }
+  if (index === total - 1) {
+    return { color: 'bg-green-50/50', badgeColor: 'bg-green-600 text-white' };
+  }
+  const middleColors = [
+    { color: 'bg-blue-50/50', badgeColor: 'bg-blue-600 text-white' },
+    { color: 'bg-amber-50/50', badgeColor: 'bg-amber-600 text-white' },
+    { color: 'bg-purple-50/50', badgeColor: 'bg-purple-600 text-white' },
+    { color: 'bg-pink-50/50', badgeColor: 'bg-pink-600 text-white' },
+  ];
+  return middleColors[(index - 1) % middleColors.length];
+}
 
 export default function KanbanBoard() {
   const { requirements, transitionRequirement } = useRequirementStore();
+  const { currentProject } = useProjectStore();
   const [activeTab, setActiveTab] = useState<'all' | 'members' | 'agents'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -39,8 +63,26 @@ export default function KanbanBoard() {
     useSensor(KeyboardSensor)
   );
 
+  // Get swimlane configuration from project or use default
+  const swimlaneNames = currentProject?.settings?.swimlanes || DEFAULT_SWIMLANES;
+
+  // Generate swimlane objects dynamically
+  const SWIMLANES = swimlaneNames.map((name, index) => ({
+    id: slugifyLaneName(name),
+    title: name,
+    ...getLaneColors(index, swimlaneNames.length),
+  }));
+
+  // Get valid lane IDs
+  const validLaneIds = SWIMLANES.map(l => l.id);
+
+  // Get valid status for a requirement (falls back to first lane if invalid)
+  const getValidStatus = (status: string) => {
+    return validLaneIds.includes(status) ? status : validLaneIds[0];
+  };
+
   const getRequirementsByStatus = (status: string) => {
-    return requirements.filter(req => req.status === status);
+    return requirements.filter(req => getValidStatus(req.status) === status);
   };
 
   const handleDragStart = (event: DragStartEvent) => {

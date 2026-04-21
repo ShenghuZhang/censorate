@@ -9,8 +9,10 @@ class GitHubRepo(BaseModel):
     __tablename__ = "github_repos"
 
     project_id = Column(UUIDType, ForeignKey("projects.id"), nullable=False)
-    owner = Column(String(255), nullable=False)
-    repo = Column(String(255), nullable=False)
+    url = Column(String(1024), nullable=False)
+    description = Column(Text, nullable=True)
+    owner = Column(String(255), nullable=True)
+    repo = Column(String(255), nullable=True)
     installation_id = Column(Integer, nullable=True)
     webhook_id = Column(Integer, nullable=True)
     last_synced_at = Column(DateTime, nullable=True)

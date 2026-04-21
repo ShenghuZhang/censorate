@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
-    projects, requirements, tasks, agents, test_cases, auth, skills, automation, analytics, remote_agents
+    projects, requirements, tasks, agents, test_cases, auth, skills, automation, analytics, remote_agents, github_repos
 )
 
 api_router = APIRouter()
@@ -15,3 +15,4 @@ api_router.include_router(skills.router, tags=["skills"])
 api_router.include_router(automation.router, tags=["automation"])
 api_router.include_router(analytics.router, tags=["analytics"])
 api_router.include_router(remote_agents.router, tags=["remote-agents"])
+api_router.include_router(github_repos.router, tags=["github-repos"])

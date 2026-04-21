@@ -1,14 +1,21 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from uuid import UUID
+
+
+class ProjectSettings(BaseModel):
+    """Project settings schema."""
+    swimlanes: Optional[List[str]] = None
+    logo_url: Optional[str] = None
 
 
 class ProjectCreate(BaseModel):
     """Schema for creating a new project."""
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
-    project_type: str = Field(default="non_technical", pattern=r"^(non_technical|technical)$")
+    project_type: Optional[str] = Field(default="non_technical", pattern=r"^(non_technical|technical)$")
+    settings: Optional[ProjectSettings] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -16,6 +23,7 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     project_type: Optional[str] = Field(None, pattern=r"^(non_technical|technical)$")
+    settings: Optional[ProjectSettings] = None
 
 
 class ProjectResponse(BaseModel):

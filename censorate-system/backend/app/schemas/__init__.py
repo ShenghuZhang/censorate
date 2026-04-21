@@ -22,6 +22,7 @@ from .skill import (
     SkillUploadMetadata, SkillUploadResponse, SkillDownloadRecord,
     CategoryListResponse, SkillStatsResponse
 )
+from .github_repo import GitHubRepoCreate, GitHubRepoUpdate, GitHubRepoResponse
 
 __all__ = [
     "ProjectCreate", "ProjectUpdate", "ProjectResponse",
@@ -38,5 +39,6 @@ __all__ = [
     "SkillVersionCreate", "SkillVersionUpdate", "SkillVersionResponse",
     "SkillFileResponse", "SkillSearchQuery", "SkillSearchResult", "SkillSearchResponse",
     "SkillUploadMetadata", "SkillUploadResponse", "SkillDownloadRecord",
-    "CategoryListResponse", "SkillStatsResponse"
+    "CategoryListResponse", "SkillStatsResponse",
+    "GitHubRepoCreate", "GitHubRepoUpdate", "GitHubRepoResponse"
 ]

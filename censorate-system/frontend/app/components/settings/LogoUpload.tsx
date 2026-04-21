@@ -105,7 +105,7 @@ export default function LogoUpload({ currentLogo, onLogoChange }: LogoUploadProp
         {!preview && (
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all text-sm font-medium shadow-soft hover:shadow-medium"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg"
           >
             <Upload size={16} strokeWidth={2} />
             Upload Logo

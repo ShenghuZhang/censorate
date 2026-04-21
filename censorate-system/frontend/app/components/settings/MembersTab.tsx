@@ -58,32 +58,32 @@ export default function MembersTab() {
   return (
     <div>
       {/* Header with search and filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5 items-start sm:items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center justify-between">
         <div className="flex-1 w-full sm:w-auto">
           <div className="relative">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search members..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-72 pl-10 pr-3.5 py-2.5 bg-surface-soft border border-border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-text-primary text-sm"
+              className="w-full sm:w-72 pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-300 focus:border-slate-400 outline-none transition-all duration-200 text-slate-700 text-sm shadow-sm"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           {/* Filter */}
-          <div className="flex items-center gap-1.5 bg-surface-soft rounded-lg p-1">
+          <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded-xl p-1 shadow-sm">
             {(['all', 'human', 'ai'] as const).map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
                 className={clsx(
-                  'px-3.5 py-2 rounded-lg text-sm font-medium transition-all',
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                   filterType === type
-                    ? 'bg-white text-text-primary shadow-soft'
-                    : 'text-text-secondary hover:text-text-primary'
+                    ? 'bg-white text-slate-700 shadow-md'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50/60'
                 )}
               >
                 {type === 'all' ? 'All' : type === 'human' ? 'Humans' : 'AI Agents'}
@@ -95,7 +95,7 @@ export default function MembersTab() {
           <div className="relative">
             <button
               onClick={() => setShowAddMenu(!showAddMenu)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all font-medium text-sm shadow-soft hover:shadow-medium"
+              className="inline-flex items-center gap-2 px-5 py-3 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition-all duration-200 font-medium text-sm shadow-md hover:shadow-lg"
             >
               <Plus size={16} strokeWidth={2} />
               Add
@@ -135,24 +135,24 @@ export default function MembersTab() {
       {/* Members Grid */}
       {isLoading ? (
         <div className="flex justify-center py-14">
-          <div className="animate-spin w-7 h-7 border-2 border-border rounded-full border-t-primary" />
+          <div className="animate-spin w-8 h-8 border-2 border-slate-200 rounded-full border-t-slate-500" />
         </div>
       ) : filteredMembers.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-soft border border-border p-10 text-center">
-          <div className="w-14 h-14 bg-surface-soft rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <Filter size={28} className="text-text-muted" />
+        <div className="bg-slate-50/70 border border-slate-200/60 rounded-2xl p-12 text-center shadow-sm">
+          <div className="w-16 h-16 bg-slate-100 border border-slate-200/50 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <Filter size={32} className="text-slate-400" />
           </div>
-          <h3 className="text-base font-semibold text-text-primary mb-2">
+          <h3 className="text-lg font-medium text-slate-700 mb-2">
             No members found
           </h3>
-          <p className="text-text-muted text-sm">
+          <p className="text-slate-500 text-sm">
             {searchQuery || filterType !== 'all'
               ? 'Try adjusting your search or filters'
               : 'Start by adding team members or AI agents'}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredMembers.map((member) => (
             <MemberCard
               key={member.id}
