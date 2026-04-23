@@ -2,21 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
+import { Check } from 'lucide-react';
 
 const PRESET_OPTIONS = [
   {
     id: 'default',
-    label: 'Default (4 lanes)',
+    label: 'Default',
+    description: 'Simple workflow for small teams',
     lanes: ['Backlog', 'Todo', 'In Review', 'Done'],
   },
   {
     id: 'standard',
-    label: 'Standard (6 lanes)',
+    label: 'Standard',
+    description: 'Full workflow for product development',
     lanes: ['需求', '需求分析', '方案设计', '开发', '测试', '完成'],
   },
   {
     id: 'custom',
     label: 'Custom',
+    description: 'Define your own workflow',
     lanes: [],
   },
 ];
@@ -38,21 +42,21 @@ export function slugifyLaneName(name: string): string {
     || `lane_${Date.now()}`;
 }
 
-// Get lane colors based on index
+// Get lane colors based on index - GitHub style muted colors
 export function getLaneColors(index: number, total: number) {
-  if (index === 0) {
-    return { color: 'bg-gray-50/50', badgeColor: 'bg-gray-600 text-white' };
-  }
-  if (index === total - 1) {
-    return { color: 'bg-green-50/50', badgeColor: 'bg-green-600 text-white' };
-  }
-  const middleColors = [
-    { color: 'bg-blue-50/50', badgeColor: 'bg-blue-600 text-white' },
-    { color: 'bg-amber-50/50', badgeColor: 'bg-amber-600 text-white' },
-    { color: 'bg-purple-50/50', badgeColor: 'bg-purple-600 text-white' },
-    { color: 'bg-pink-50/50', badgeColor: 'bg-pink-600 text-white' },
+  const colors = [
+    { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-700' },
+    { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
+    { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700' },
+    { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700' },
+    { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700' },
+    { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700' },
+    { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700' },
+    { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700' },
+    { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700' },
+    { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700' },
   ];
-  return middleColors[(index - 1) % middleColors.length];
+  return colors[index % colors.length];
 }
 
 export default function SwimlaneSelector({ value, onChange, error }: SwimlaneSelectorProps) {
@@ -104,91 +108,111 @@ export default function SwimlaneSelector({ value, onChange, error }: SwimlaneSel
   const isValid = displayLanes.length >= 2 && displayLanes.length <= 10;
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-6">
       <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-5">
-          Swimlane Configuration
-        </label>
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">
+          Workflow
+        </h3>
 
-        {/* Preset options */}
-        <div className="grid grid-cols-1 gap-4 mb-7">
+        {/* Preset options - GitHub style radio cards */}
+        <div className="space-y-2 mb-6">
           {PRESET_OPTIONS.map((preset) => (
-            <button
+            <label
               key={preset.id}
-              type="button"
-              onClick={() => handlePresetChange(preset.id)}
               className={clsx(
-                'flex items-center justify-between p-5 rounded-2xl border-2 transition-all duration-200 text-left',
+                'flex items-start gap-4 p-4 rounded-lg border transition-all cursor-pointer',
                 selectedPreset === preset.id
-                  ? 'border-slate-400 bg-slate-100 shadow-md'
-                  : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/70'
+                  ? 'border-blue-500 bg-blue-50/50'
+                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
               )}
             >
-              <span className={clsx(
-                'font-semibold text-base',
-                selectedPreset === preset.id ? 'text-slate-800' : 'text-slate-600'
-              )}>
-                {preset.label}
-              </span>
-              {preset.id !== 'custom' && (
-                <span className="text-sm text-slate-500 font-medium bg-white/60 px-3 py-1 rounded-full border border-slate-200">
-                  {preset.lanes.length} lanes
-                </span>
-              )}
-            </button>
+              <div className="flex items-center justify-center mt-0.5">
+                <div className={clsx(
+                  'w-4 h-4 rounded-full border flex items-center justify-center transition-all',
+                  selectedPreset === preset.id
+                    ? 'border-blue-600'
+                    : 'border-gray-300'
+                )}>
+                  {selectedPreset === preset.id && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1" onClick={() => handlePresetChange(preset.id)}>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-900">
+                    {preset.label}
+                  </span>
+                  {preset.id !== 'custom' && (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {preset.lanes.length} lanes
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  {preset.description}
+                </p>
+              </div>
+            </label>
           ))}
         </div>
 
-        {/* Custom input */}
+        {/* Custom input - GitHub style input */}
         {selectedPreset === 'custom' && (
-          <div className="space-y-3 mb-7">
-            <label className="block text-sm font-medium text-slate-600">
-              Enter lane names (comma-separated)
+          <div className="space-y-3 mb-6 border-t border-gray-200 pt-6">
+            <label className="block text-sm font-medium text-gray-700">
+              Lane names
             </label>
+            <div className="text-sm text-gray-500 mb-2">
+              Separate lane names with commas
+            </div>
             <input
               type="text"
               value={customInput}
               onChange={(e) => handleCustomInputChange(e.target.value)}
-              placeholder="Backlog, Todo, In Review, Done"
+              placeholder="Backlog, Todo, In Progress, Review, Done"
               className={clsx(
-                'w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-300 focus:border-slate-400 outline-none transition-all duration-200 text-slate-700 text-sm shadow-sm',
-                error ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-200' : ''
+                'w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-sm text-gray-900 placeholder:text-gray-400',
+                error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/30' : ''
               )}
             />
           </div>
         )}
       </div>
 
-      {/* Validation message */}
+      {/* Preview section */}
       {displayLanes.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="border-t border-gray-200 pt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
               Preview
-            </span>
+            </h4>
             <span className={clsx(
-              'text-sm font-semibold',
-              isValid ? 'text-emerald-600' : 'text-rose-600'
+              'text-sm',
+              isValid ? 'text-green-600' : 'text-red-600'
             )}>
-              {displayLanes.length} {displayLanes.length === 1 ? 'lane' : 'lanes'}
-              {!isValid && ` (needs 2-10)`}
+              <span className="font-medium">{displayLanes.length}</span> {displayLanes.length === 1 ? 'lane' : 'lanes'}
+              {!isValid && <span className="text-gray-500 ml-1">(2-10 required)</span>}
             </span>
           </div>
 
-          {/* Lane preview - Kanban style */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          {/* Lane preview - GitHub style labels */}
+          <div className="flex flex-wrap gap-2">
             {displayLanes.map((lane, index) => {
               const colors = getLaneColors(index, displayLanes.length);
               return (
-                <div
+                <span
                   key={`${slugifyLaneName(lane)}-${index}`}
                   className={clsx(
-                    'flex-shrink-0 min-w-[120px] max-w-[160px] px-3.5 py-2.5 rounded-xl text-sm font-medium border border-slate-200 shadow-sm text-center',
-                    colors.color
+                    'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border',
+                    colors.bg,
+                    colors.border,
+                    colors.text
                   )}
                 >
-                  <span className="text-slate-700 truncate block">{lane}</span>
-                </div>
+                  {lane}
+                </span>
               );
             })}
           </div>
@@ -196,9 +220,12 @@ export default function SwimlaneSelector({ value, onChange, error }: SwimlaneSel
       )}
 
       {error && (
-        <p className="text-sm text-rose-600 font-medium bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 w-fit">
-          {error}
-        </p>
+        <div className="pt-4 border-t border-gray-200">
+          <p className="text-sm text-red-600 flex items-center gap-2">
+            <Check className="w-4 h-4" />
+            {error}
+          </p>
+        </div>
       )}
     </div>
   );

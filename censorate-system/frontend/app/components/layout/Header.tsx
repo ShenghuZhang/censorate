@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Menu,
   Search,
@@ -22,119 +22,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { useNotificationStore } from '@/app/stores/notificationStore';
 import { clsx } from 'clsx';
 import NotificationDropdown from '../notifications/NotificationDropdown';
-
-interface HeaderProps {
-  onMenuClick: () => void;
-}
-
-interface CreateProjectDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
-  isLoading: boolean;
-}
-
-import SwimlaneSelector, { DEFAULT_LANES } from '@/app/components/settings/SwimlaneSelector';
-
-function CreateProjectDialog({ isOpen, onClose, onSubmit, isLoading }: CreateProjectDialogProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [swimlanes, setSwimlanes] = useState<string[]>(DEFAULT_LANES);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setName('');
-      setDescription('');
-      setSwimlanes(DEFAULT_LANES);
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSubmit({
-      name,
-      description,
-      project_type: 'non_technical',
-      settings: { swimlanes }
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 border border-gray-200">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 tracking-tight">New Project</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Project Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
-              placeholder="Enter project name"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50/80 border border-gray-200/80 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all text-sm resize-none"
-              rows={3}
-              placeholder="Enter project description"
-            />
-          </div>
-
-          <SwimlaneSelector value={swimlanes} onChange={setSwimlanes} />
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-5 py-2.5 text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading || !name}
-              className="flex-1 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-500/25"
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating...
-                </div>
-              ) : (
-                'Create Project'
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+import CreateProjectDialog from '@/app/components/projects/CreateProjectDialog';
 
 function UserDropdown({ isOpen, onClose, onLogout }: {
   isOpen: boolean;
@@ -203,6 +91,7 @@ function UserDropdown({ isOpen, onClose, onLogout }: {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
   const { projects, currentProject, isLoading, fetchProjects, createProject, setCurrentProject, deleteProject } = useProjectStore();
   const { notifications, unreadCount, isOpen: isNotificationsOpen, setIsOpen: setNotificationsOpen } = useNotificationStore();
@@ -226,6 +115,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const handleSelectProject = (project: any) => {
     setCurrentProject(project);
     setIsProjectSelectorOpen(false);
+    // Update URL based on current page
+    if (pathname === '/analytics') {
+      router.push(`/analytics?project_id=${project.id}`);
+    } else {
+      router.push(`/kanban?project_id=${project.id}`);
+    }
   };
 
   const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
@@ -259,15 +154,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
               onClick={() => setIsProjectSelectorOpen(!isProjectSelectorOpen)}
               className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-xl transition-colors group focus:outline-none"
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
-                <FolderKanban className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xl">
+                {currentProject?.settings?.emoji || <FolderKanban className="w-4 h-4 text-slate-500" />}
               </div>
               <div className="text-left hidden sm:block">
                 <div className="text-sm font-semibold text-gray-900 tracking-tight">
                   {currentProject?.name || 'Select Project'}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {currentProject ? currentProject.project_type.replace('_', ' ') : 'No project selected'}
                 </div>
               </div>
               <ChevronDown className={clsx(
@@ -325,8 +217,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                   : "hover:bg-gray-50"
                               )}
                             >
-                              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getProjectTypeColor(project.project_type)} flex items-center justify-center shadow-sm`}>
-                                <FolderKanban className="w-5 h-5 text-white" />
+                              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-2xl">
+                                {project.settings?.emoji || <FolderKanban className="w-5 h-5 text-slate-500" />}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className={clsx(
@@ -338,7 +230,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                   {project.name}
                                 </div>
                                 <div className="text-xs text-gray-400 truncate">
-                                  {project.project_type.replace('_', ' ')} • {new Date(project.created_at).toLocaleDateString()}
+                                  {new Date(project.createdAt).toLocaleDateString()}
                                 </div>
                               </div>
                               {currentProject?.id === project.id && (
@@ -362,7 +254,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
                   <div className="p-3 border-t border-gray-100">
                     <button
-                      onClick={() => router.push('/projects')}
+                      onClick={() => {
+                        setIsProjectSelectorOpen(false);
+                        router.push('/projects');
+                      }}
                       className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors"
                     >
                       <MoreHorizontal className="w-4 h-4" />

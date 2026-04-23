@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { Project, ProjectCreate, ProjectUpdate, projectsAPI } from '@/lib/api/projects';
+import { projectsAPI, type Project, type ProjectCreate, type ProjectUpdate } from '@/lib/api/projects';
 
 interface ProjectState {
   projects: Project[];
@@ -10,7 +10,6 @@ interface ProjectState {
   isLoading: boolean;
   error: string | null;
 
-  // Actions
   fetchProjects: () => Promise<void>;
   fetchProject: (id: string) => Promise<void>;
   createProject: (data: ProjectCreate) => Promise<Project | null>;

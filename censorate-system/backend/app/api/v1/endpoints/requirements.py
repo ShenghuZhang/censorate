@@ -55,12 +55,19 @@ def create_requirement(
 
     req_number = get_next_req_number(project_id, db)
 
+    # Get initial status from project swimlane configuration if available
+    initial_status = "backlog"
+    if project.settings and "swimlanes" in project.settings and len(project.settings["swimlanes"]) > 0:
+        # Use the first swimlane, convert to snake_case for status
+        first_lane = project.settings["swimlanes"][0]
+        initial_status = first_lane.lower().replace(' ', '_')
+
     requirement = Requirement(
         project_id=project_id,
         req_number=req_number,
         title=requirement_in.title,
         description=requirement_in.description,
-        status="backlog",
+        status=initial_status,
         priority=requirement_in.priority,
         source=requirement_in.source,
         source_metadata=requirement_in.source_metadata,
@@ -137,7 +144,7 @@ def transition_requirement(
     transition: RequirementTransition,
     db: Session = Depends(get_db)
 ):
-    """Transition a requirement to a new status."""
+    """Transition a requirement to a new status (supports dynamic swimlanes)."""
     requirement = db.query(Requirement).filter(
         Requirement.id == requirement_id,
         Requirement.archived_at.is_(None)
@@ -148,27 +155,49 @@ def transition_requirement(
             detail="Requirement not found"
         )
 
-    from app.state_machine.requirement_state_machine import RequirementStateMachine
+    # Get project for potential backward transition detection (optional)
     project = db.query(Project).filter(Project.id == requirement.project_id).first()
 
-    if not RequirementStateMachine.can_transition(
-        requirement.status, transition.to_status, project.project_type
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid transition from {requirement.status} to {transition.to_status}"
-        )
+    # Get swimlane configuration from project settings if available
+    swimlanes = []
+    if project and project.settings and "swimlanes" in project.settings:
+        swimlanes = project.settings["swimlanes"]
 
-    # Check if it's a backward transition
-    if RequirementStateMachine.is_backward_transition(
-        requirement.status, transition.to_status, project.project_type
-    ):
-        requirement.return_count += 1
-        requirement.last_returned_at = datetime.utcnow()
+    # Try to detect backward transitions using project swimlane order if available
+    if swimlanes:
+        try:
+            # Convert status to display names for comparison (handle slugified vs display names)
+            from_slug = requirement.status.lower().replace('_', ' ')
+            to_slug = transition.to_status.lower().replace('_', ' ')
+
+            # Find indices (case-insensitive partial match)
+            from_index = None
+            to_index = None
+
+            for i, lane in enumerate(swimlanes):
+                lane_slug = lane.lower().replace(' ', '_')
+                if lane_slug == requirement.status or lane.lower() == from_slug:
+                    from_index = i
+                if lane_slug == transition.to_status or lane.lower() == to_slug:
+                    to_index = i
+
+            if from_index is not None and to_index is not None and to_index < from_index:
+                requirement.return_count += 1
+                requirement.last_returned_at = datetime.utcnow()
+        except Exception:
+            # If anything fails, skip backward transition tracking
+            pass
 
     requirement.status = transition.to_status
 
-    if transition.to_status == "done":
+    # Check if we're moving to a "done-like" state (last swimlane or contains "done"/"complete" in name)
+    is_done_state = False
+    if swimlanes and transition.to_status == swimlanes[-1].lower().replace(' ', '_'):
+        is_done_state = True
+    elif "done" in transition.to_status.lower() or "complete" in transition.to_status.lower():
+        is_done_state = True
+
+    if is_done_state:
         requirement.completed_at = datetime.utcnow()
 
     db.commit()

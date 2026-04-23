@@ -10,9 +10,41 @@ interface WorkloadChartProps {
 
 type SortOrder = 'total' | 'name';
 
+// Dynamic color palette for swimlanes
+const SWIMLANE_COLORS = [
+  'bg-gray-500',
+  'bg-blue-500',
+  'bg-amber-500',
+  'bg-green-500',
+  'bg-purple-500',
+  'bg-pink-500',
+  'bg-indigo-500',
+  'bg-red-500',
+];
+
+const SWIMLANE_TEXT_COLORS = [
+  'text-gray-600',
+  'text-blue-600',
+  'text-amber-600',
+  'text-green-600',
+  'text-purple-600',
+  'text-pink-600',
+  'text-indigo-600',
+  'text-red-600',
+];
+
 export default function WorkloadChart({ data }: WorkloadChartProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('total');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Extract all status keys from data (excluding known fields)
+  const getStatusKeys = (): string[] => {
+    if (data.length === 0) return [];
+    const excludedKeys = ['memberId', 'memberName', 'total'];
+    return Object.keys(data[0]).filter(key => !excludedKeys.includes(key));
+  };
+
+  const statusKeys = getStatusKeys();
 
   const sortedData = [...data].sort((a, b) => {
     if (sortOrder === 'total') {
@@ -35,8 +67,16 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
     }
   };
 
+  // Convert status key to display label
+  const formatStatusLabel = (status: string): string => {
+    return status
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-soft border border-border p-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+    <div className="bg-white rounded-2xl shadow-soft border border-border p-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
@@ -78,94 +118,73 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-6 mb-6">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-md bg-blue-500" />
-          <span className="text-sm text-text-secondary">Todo</span>
+      {statusKeys.length > 0 && (
+        <div className="flex items-center gap-6 mb-6 flex-wrap">
+          {statusKeys.map((status, index) => (
+            <div key={status} className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-md ${SWIMLANE_COLORS[index % SWIMLANE_COLORS.length]}`} />
+              <span className="text-sm text-text-secondary">{formatStatusLabel(status)}</span>
+            </div>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-md bg-amber-500" />
-          <span className="text-sm text-text-secondary">In Review</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-md bg-green-500" />
-          <span className="text-sm text-text-secondary">Done</span>
-        </div>
-      </div>
+      )}
 
       <div className="space-y-4">
         {sortedData.map((member, index) => {
-          const todoWidth = maxTotal > 0 ? (member.todo / maxTotal) * 100 : 0;
-          const inReviewWidth = maxTotal > 0 ? (member.inReview / maxTotal) * 100 : 0;
-          const doneWidth = maxTotal > 0 ? (member.done / maxTotal) * 100 : 0;
+          // Calculate widths for each status segment
+          const statusWidths = statusKeys.map(status => {
+            const count = member[status] || 0;
+            return {
+              status,
+              count,
+              width: maxTotal > 0 ? (count / maxTotal) * 100 : 0,
+            };
+          });
 
           return (
             <div key={member.memberId} className="group">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white font-medium text-sm">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white font-medium text-base">
                     {member.memberName.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium text-text-primary">
+                  <span className="font-medium text-text-primary text-base">
                     {member.memberName}
                   </span>
                 </div>
                 <div className="text-sm text-text-muted">
-                  <span className="font-semibold text-text-primary">{member.total}</span> total
+                  <span className="font-semibold text-text-primary text-base">{member.total}</span> total
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 h-8">
-                <div className="flex-1 flex h-full rounded-lg overflow-hidden bg-surface-soft">
-                  {member.todo > 0 && (
-                    <div
-                      className="bg-blue-500 transition-all h-full flex items-center justify-center"
-                      style={{ width: `${todoWidth}%` }}
-                    >
-                      {todoWidth > 10 && (
-                        <span className="text-white text-xs font-semibold">
-                          {member.todo}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {member.inReview > 0 && (
-                    <div
-                      className="bg-amber-500 transition-all h-full flex items-center justify-center"
-                      style={{ width: `${inReviewWidth}%` }}
-                    >
-                      {inReviewWidth > 10 && (
-                        <span className="text-white text-xs font-semibold">
-                          {member.inReview}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {member.done > 0 && (
-                    <div
-                      className="bg-green-500 transition-all h-full flex items-center justify-center"
-                      style={{ width: `${doneWidth}%` }}
-                    >
-                      {doneWidth > 10 && (
-                        <span className="text-white text-xs font-semibold">
-                          {member.done}
-                        </span>
-                      )}
-                    </div>
-                  )}
+              <div className="flex items-center gap-1 h-10">
+                <div className="flex-1 flex h-full rounded-xl overflow-hidden bg-surface-soft">
+                  {statusWidths.map(({ status, count, width }, idx) => (
+                    count > 0 && (
+                      <div
+                        key={status}
+                        className={`${SWIMLANE_COLORS[idx % SWIMLANE_COLORS.length]} transition-all h-full flex items-center justify-center`}
+                        style={{ width: `${width}%` }}
+                      >
+                        {width > 10 && (
+                          <span className="text-white text-xs font-semibold">
+                            {count}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  ))}
                 </div>
               </div>
 
-              <div className="flex justify-between text-xs text-text-muted mt-1">
-                <span>
-                  <span className="text-blue-600 font-semibold">{member.todo}</span> todo
-                </span>
-                <span>
-                  <span className="text-amber-600 font-semibold">{member.inReview}</span> in review
-                </span>
-                <span>
-                  <span className="text-green-600 font-semibold">{member.done}</span> done
-                </span>
+              <div className="flex justify-between text-xs text-text-muted mt-1 flex-wrap gap-2">
+                {statusWidths.map(({ status, count }, idx) => (
+                  <span key={status}>
+                    <span className={`${SWIMLANE_TEXT_COLORS[idx % SWIMLANE_TEXT_COLORS.length]} font-semibold`}>
+                      {count}
+                    </span> {formatStatusLabel(status)}
+                  </span>
+                ))}
               </div>
             </div>
           );

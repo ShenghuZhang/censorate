@@ -162,9 +162,10 @@ class RequirementService:
 
         # Check for backward move
         from app.state_machine.requirement_state_machine import RequirementStateMachine
+        from app.models.project import Project
 
-        # Get project for state machine check
-        project = db.query(Requirement).filter(Requirement.id == requirement_id).first()
+        # Get project for state machine check and swimlane config
+        project = db.query(Project).filter(Project.id == requirement.project_id).first()
         if project:
             if RequirementStateMachine.is_backward_transition(
                 requirement.status, to_status, "technical"
@@ -180,8 +181,22 @@ class RequirementService:
         if result.get("result"):
             requirement.ai_suggestions = result.get("result")
 
-        if to_status == "done":
+        # Check if we're moving to a "done-like" state (last swimlane or contains "done"/"complete" in name)
+        is_done_state = False
+        if project:
+            swimlanes = project.settings.get("swimlanes", ["Backlog", "Todo", "In Review", "Done"])
+            last_swimlane_status = swimlanes[-1].lower().replace(' ', '_')
+            if to_status == last_swimlane_status:
+                is_done_state = True
+        if not is_done_state:
+            if "done" in to_status.lower() or "complete" in to_status.lower():
+                is_done_state = True
+
+        if is_done_state:
             requirement.completed_at = datetime.now(timezone.utc)
+        else:
+            # If moving out of done state, clear completed_at
+            requirement.completed_at = None
 
         self.req_repo.update(db, requirement)
 

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Bell, Check, Trash2 } from 'lucide-react';
 import { useNotificationStore, Notification } from '@/app/stores/notificationStore';
+import { useProjectStore } from '@/app/stores/projectStore';
 import NotificationItem from './NotificationItem';
 
 interface NotificationDropdownProps {
@@ -12,6 +13,7 @@ interface NotificationDropdownProps {
 
 export default function NotificationDropdown({ isOpen, onClose }: NotificationDropdownProps) {
   const router = useRouter();
+  const { currentProject } = useProjectStore();
   const {
     notifications,
     unreadCount,
@@ -26,7 +28,8 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
   const handleNotificationClick = (notification: Notification) => {
     if (notification.requirementId) {
       // Navigate to kanban board with requirement highlighted
-      router.push('/kanban');
+      const url = currentProject ? `/kanban?project_id=${currentProject.id}` : '/kanban';
+      router.push(url);
     }
     onClose();
   };

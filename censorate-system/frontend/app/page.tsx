@@ -20,11 +20,8 @@ export default function Home() {
 
   useEffect(() => {
     if (isAuthenticated && projects.length > 0) {
-      if (currentProject) {
-        router.push('/kanban');
-      } else {
-        router.push('/projects');
-      }
+      const project = currentProject || projects[0];
+      router.push(`/kanban?project_id=${project.id}`);
     } else if (isAuthenticated) {
       router.push('/projects');
     }
@@ -35,10 +32,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-3 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-        <p className="text-sm text-gray-400">Redirecting...</p>
+        <div className="w-10 h-10 border-3 border-border border-t-primary rounded-full animate-spin" />
+        <p className="text-sm text-text-muted">Redirecting...</p>
       </div>
     </div>
   );

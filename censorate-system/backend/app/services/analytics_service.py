@@ -8,6 +8,33 @@ from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Default status colors if not specified
+DEFAULT_COLORS = [
+    "bg-gray-500",
+    "bg-blue-500",
+    "bg-amber-500",
+    "bg-green-500",
+    "bg-purple-500",
+    "bg-pink-500",
+    "bg-indigo-500",
+    "bg-red-500",
+]
+DEFAULT_BG_COLORS = [
+    "bg-gray-100",
+    "bg-blue-100",
+    "bg-amber-100",
+    "bg-green-100",
+    "bg-purple-100",
+    "bg-pink-100",
+    "bg-indigo-100",
+    "bg-red-100",
+]
+
+
+def _get_status_from_swimlane(swimlane: str) -> str:
+    """Convert swimlane name to status identifier."""
+    return swimlane.lower().replace(" ", "_").replace("-", "_")
+
 
 class AnalyticsService:
     """Analytics and reporting service."""
@@ -16,28 +43,39 @@ class AnalyticsService:
         """Get detailed statistics for a specific project."""
         logger.info(f"Getting project statistics: {project_id}")
 
+        # Get project and its swimlane configuration
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        swimlanes = project.settings.get("swimlanes", ["Backlog", "Todo", "In Review", "Done"])
         requirements = db.query(Requirement).filter(Requirement.project_id == project_id).all()
 
         total = len(requirements)
-        done = len([r for r in requirements if r.status == "done"])
-        in_review = len([r for r in requirements if r.status == "in_review"])
-        todo = len([r for r in requirements if r.status == "todo"])
-        backlog = len([r for r in requirements if r.status == "backlog"])
+
+        # Count requirements per swimlane
+        status_distribution = []
+        for idx, swimlane in enumerate(swimlanes):
+            status = _get_status_from_swimlane(swimlane)
+            count = len([r for r in requirements if r.status == status])
+            status_distribution.append({
+                "status": status,
+                "label": swimlane,
+                "count": count,
+                "percentage": (count / total) * 100 if total > 0 else 0,
+                "color": DEFAULT_COLORS[idx % len(DEFAULT_COLORS)],
+                "bg_color": DEFAULT_BG_COLORS[idx % len(DEFAULT_BG_COLORS)],
+            })
+
+        # Calculate completion rate (last swimlane is considered done)
+        done_status = _get_status_from_swimlane(swimlanes[-1])
+        done_count = len([r for r in requirements if r.status == done_status])
 
         return {
             "project_id": project_id,
             "total_requirements": total,
-            "done": done,
-            "in_review": in_review,
-            "todo": todo,
-            "backlog": backlog,
-            "completion_rate": (done / total) * 100 if total > 0 else 0,
-            "status_distribution": [
-                {"status": "backlog", "count": backlog, "percentage": (backlog / total) * 100 if total > 0 else 0},
-                {"status": "todo", "count": todo, "percentage": (todo / total) * 100 if total > 0 else 0},
-                {"status": "in_review", "count": in_review, "percentage": (in_review / total) * 100 if total > 0 else 0},
-                {"status": "done", "count": done, "percentage": (done / total) * 100 if total > 0 else 0}
-            ]
+            "completion_rate": (done_count / total) * 100 if total > 0 else 0,
+            "status_distribution": status_distribution
         }
 
     def get_all_projects_statistics(self, db: Session) -> List[Dict[str, Any]]:
@@ -74,7 +112,7 @@ class AnalyticsService:
                     "completed": 0
                 }
             monthly_trends[month]["created"] += 1
-            if req.status == "done":
+            if req.completed_at:
                 monthly_trends[month]["completed"] += 1
 
         return sorted(list(monthly_trends.values()), key=lambda x: x["month"])
@@ -86,6 +124,9 @@ class AnalyticsService:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days - 1)
 
+        # Get all requirements for the project
+        all_requirements = db.query(Requirement).filter(Requirement.project_id == project_id).all()
+
         # Initialize all dates in range
         daily_data = {}
         for i in range(days):
@@ -93,44 +134,53 @@ class AnalyticsService:
             date_str = date.strftime("%Y-%m-%d")
             daily_data[date_str] = {
                 "date": date_str,
-                "created": 0,
                 "completed": 0,
+                "backlog": 0,
                 "is_overload": False
             }
 
-        # Count created requirements by day
-        requirements = db.query(Requirement).filter(
-            Requirement.project_id == project_id,
-            Requirement.created_at >= start_date
-        ).all()
+        # First pass: count requirements completed each day using completed_at field
+        for req in all_requirements:
+            if req.completed_at:
+                date_str = req.completed_at.strftime("%Y-%m-%d")
+                if date_str in daily_data:
+                    daily_data[date_str]["completed"] += 1
 
-        for req in requirements:
-            date_str = req.created_at.strftime("%Y-%m-%d")
-            if date_str in daily_data:
-                daily_data[date_str]["created"] += 1
+        # Calculate backlog for each day:
+        # For each day, count requirements that:
+        # 1. Were created on or before that day
+        # 2. Either are not completed OR were completed after that day
+        sorted_dates = sorted(daily_data.keys())
 
-        # Count completed requirements by day (using updated_at for done status)
-        completed_reqs = db.query(Requirement).filter(
-            Requirement.project_id == project_id,
-            Requirement.status == "done",
-            Requirement.updated_at >= start_date
-        ).all()
+        for date_str in sorted_dates:
+            # Get date object and set to end of day (23:59:59)
+            current_date = datetime.strptime(date_str, "%Y-%m-%d")
+            current_date = current_date.replace(hour=23, minute=59, second=59)
 
-        for req in completed_reqs:
-            date_str = req.updated_at.strftime("%Y-%m-%d")
-            if date_str in daily_data:
-                daily_data[date_str]["completed"] += 1
+            backlog_count = 0
+            for req in all_requirements:
+                # Requirement must be created on or before current date
+                if req.created_at > current_date:
+                    continue
 
-        # Mark overload days (created > 5)
-        for date_str in daily_data:
-            if daily_data[date_str]["created"] > 5:
-                daily_data[date_str]["is_overload"] = True
+                # If requirement is not completed OR was completed after current date
+                if not req.completed_at or req.completed_at > current_date:
+                    backlog_count += 1
+
+            daily_data[date_str]["backlog"] = backlog_count
 
         return sorted(list(daily_data.values()), key=lambda x: x["date"])
 
     def get_member_workload(self, db: Session, project_id: str) -> List[Dict[str, Any]]:
         """Get member workload statistics for a project."""
         logger.info(f"Getting member workload for project: {project_id}")
+
+        # Get project and its swimlane configuration
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            swimlanes = ["Backlog", "Todo", "In Review", "Done"]
+        else:
+            swimlanes = project.settings.get("swimlanes", ["Backlog", "Todo", "In Review", "Done"])
 
         requirements = db.query(Requirement).filter(Requirement.project_id == project_id).all()
 
@@ -140,22 +190,22 @@ class AnalyticsService:
         for req in requirements:
             member_id = req.assigned_to or "unassigned"
             if member_id not in member_workload:
-                member_workload[member_id] = {
+                # Initialize with all swimlanes
+                workload = {
                     "member_id": member_id,
                     "member_name": member_id if member_id != "unassigned" else "Unassigned",
-                    "todo": 0,
-                    "in_review": 0,
-                    "done": 0,
                     "total": 0
                 }
+                # Add each swimlane as a field
+                for swimlane in swimlanes:
+                    status = _get_status_from_swimlane(swimlane)
+                    workload[status] = 0
+                member_workload[member_id] = workload
 
-            if req.status == "todo":
-                member_workload[member_id]["todo"] += 1
-            elif req.status == "in_review":
-                member_workload[member_id]["in_review"] += 1
-            elif req.status == "done":
-                member_workload[member_id]["done"] += 1
-
+            # Increment the count for the current status
+            status = req.status or _get_status_from_swimlane(swimlanes[0])
+            if status in member_workload[member_id]:
+                member_workload[member_id][status] += 1
             member_workload[member_id]["total"] += 1
 
         return list(member_workload.values())

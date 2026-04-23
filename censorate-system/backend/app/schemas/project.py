@@ -8,6 +8,7 @@ class ProjectSettings(BaseModel):
     """Project settings schema."""
     swimlanes: Optional[List[str]] = None
     logo_url: Optional[str] = None
+    emoji: Optional[str] = None
 
 
 class ProjectCreate(BaseModel):

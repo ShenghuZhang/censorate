@@ -5,6 +5,7 @@ import { Project } from '@/lib/api/projects';
 import { useProjectStore } from '@/app/stores/projectStore';
 import LogoUpload from './LogoUpload';
 import SwimlaneSelector, { DEFAULT_LANES } from './SwimlaneSelector';
+import EmojiPicker from '@/app/components/projects/EmojiPicker';
 import { Save, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -18,6 +19,7 @@ export default function ProjectInfoTab({ project }: ProjectInfoTabProps) {
     name: project.name,
     description: project.description || '',
     logo_url: project.settings?.logo_url || '',
+    emoji: project.settings?.emoji || '',
     swimlanes: project.settings?.swimlanes || DEFAULT_LANES,
   });
   const [hasChanges, setHasChanges] = useState(false);
@@ -32,6 +34,7 @@ export default function ProjectInfoTab({ project }: ProjectInfoTabProps) {
       name: project.name,
       description: project.description || '',
       logo_url: project.settings?.logo_url || '',
+      emoji: project.settings?.emoji || '',
       swimlanes: project.settings?.swimlanes || DEFAULT_LANES,
     });
   }, [project]);
@@ -41,6 +44,7 @@ export default function ProjectInfoTab({ project }: ProjectInfoTabProps) {
       formData.name !== project.name ||
       formData.description !== (project.description || '') ||
       formData.logo_url !== (project.settings?.logo_url || '') ||
+      formData.emoji !== (project.settings?.emoji || '') ||
       JSON.stringify(formData.swimlanes) !== JSON.stringify(project.settings?.swimlanes || DEFAULT_LANES)
     );
   }, [formData, project]);
@@ -53,6 +57,10 @@ export default function ProjectInfoTab({ project }: ProjectInfoTabProps) {
     setFormData(prev => ({ ...prev, logo_url: logoUrl }));
   };
 
+  const handleEmojiChange = (emoji: string) => {
+    setFormData(prev => ({ ...prev, emoji }));
+  };
+
   const handleSave = async () => {
     await updateProject(project.id, {
       name: formData.name,
@@ -60,6 +68,7 @@ export default function ProjectInfoTab({ project }: ProjectInfoTabProps) {
       settings: {
         ...project.settings,
         logo_url: formData.logo_url,
+        emoji: formData.emoji,
         swimlanes: formData.swimlanes,
       },
     });
@@ -67,59 +76,70 @@ export default function ProjectInfoTab({ project }: ProjectInfoTabProps) {
 
   return (
     <div className="max-w-3xl">
-      <div className="space-y-5">
-        {/* Logo Section */}
-        <div className="bg-slate-50/70 border border-slate-200/60 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+      <div className="space-y-8">
+        {/* Branding Section */}
+        <div className="border-b border-gray-200 pb-8">
+          <h3 className="text-sm font-semibold text-gray-900 mb-6">
             Branding
           </h3>
-          <LogoUpload
-            currentLogo={formData.logo_url}
-            onLogoChange={handleLogoChange}
-          />
+          <div className="flex items-start gap-8">
+            <div className="flex flex-col gap-3">
+              <label className="text-sm font-medium text-gray-700">Icon</label>
+              <EmojiPicker value={formData.emoji} onChange={handleEmojiChange} />
+              <p className="text-xs text-gray-500">
+                Used as project icon and browser tab
+              </p>
+            </div>
+            <div className="flex-1">
+              <LogoUpload
+                currentLogo={formData.logo_url}
+                onLogoChange={handleLogoChange}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Form Section */}
-        <div className="bg-slate-50/70 border border-slate-200/60 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-5">
+        {/* Project Details Section */}
+        <div className="border-b border-gray-200 pb-8">
+          <h3 className="text-sm font-semibold text-gray-900 mb-6">
             Project Details
           </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Project Name
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-300 focus:border-slate-400 outline-none transition-all duration-200 text-slate-700 text-sm shadow-sm"
+                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-sm text-gray-900 placeholder:text-gray-400"
                 placeholder="Enter project name"
               />
             </div>
 
             {/* Slug Preview */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
                 Slug
               </label>
-              <p className="text-slate-500 font-mono text-xs bg-white/70 px-3 py-1.5 rounded-lg border border-slate-100 w-fit">
+              <p className="text-gray-600 font-mono text-xs bg-gray-50 px-3 py-2 rounded-md border border-gray-200 w-fit">
                 {generateSlug(formData.name)}
               </p>
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-300 focus:border-slate-400 outline-none transition-all duration-200 text-slate-700 text-sm resize-none shadow-sm"
+                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-sm text-gray-900 placeholder:text-gray-400 resize-none"
                 placeholder="Enter project description"
               />
             </div>
@@ -127,7 +147,7 @@ export default function ProjectInfoTab({ project }: ProjectInfoTabProps) {
         </div>
 
         {/* Swimlane Configuration */}
-        <div className="bg-slate-50/70 border border-slate-200/60 rounded-2xl p-6 shadow-sm">
+        <div className="border-b border-gray-200 pb-8">
           <SwimlaneSelector
             value={formData.swimlanes}
             onChange={(lanes) => setFormData(prev => ({ ...prev, swimlanes: lanes }))}
@@ -135,23 +155,23 @@ export default function ProjectInfoTab({ project }: ProjectInfoTabProps) {
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end pt-4">
           <button
             onClick={handleSave}
             disabled={!hasChanges || isLoading}
             className={clsx(
-              'inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all text-sm duration-200',
+              'inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all',
               hasChanges && !isLoading
-                ? 'bg-slate-600 text-white hover:bg-slate-700 shadow-md hover:shadow-lg'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                ? 'bg-green-600 text-white hover:bg-green-700 hover:shadow-sm'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
             )}
           >
             {isLoading ? (
-              <Loader2 size={17} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <Save size={17} strokeWidth={2} />
+              <Save size={16} strokeWidth={2} />
             )}
-            {isLoading ? 'Saving...' : 'Save Changes'}
+            {isLoading ? 'Saving...' : 'Save changes'}
           </button>
         </div>
       </div>

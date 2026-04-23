@@ -7,14 +7,45 @@ import WorkloadChart from '@/app/components/analytics/WorkloadChart';
 import { useProjectStore } from '@/app/stores/projectStore';
 import { useAnalytics } from '@/app/hooks/useAnalytics';
 import { BarChart3, Loader2, AlertCircle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function AnalyticsPage() {
-  const { currentProject } = useProjectStore();
+  const { currentProject, fetchProject, projects, fetchProjects, setCurrentProject, isLoading: isLoadingProject } = useProjectStore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const projectId = searchParams?.get('project_id');
+
   const { statusStats, dailyThroughput, memberWorkload, totalRequirements, isLoading, error, refetch } = useAnalytics(
     currentProject?.id || null
   );
 
-  if (isLoading) {
+  // Fetch projects if not already loaded
+  useEffect(() => {
+    if (projects.length === 0) {
+      fetchProjects();
+    }
+  }, [projects.length, fetchProjects]);
+
+  // Handle project_id from URL
+  useEffect(() => {
+    if (projectId) {
+      // If URL has project_id, fetch and set as current project
+      if (!currentProject || currentProject.id !== projectId) {
+        fetchProject(projectId);
+      }
+    } else if (currentProject) {
+      // No project_id in URL but we have currentProject, update URL
+      router.replace(`/analytics?project_id=${currentProject.id}`);
+    } else if (projects.length > 0) {
+      // No project_id and no currentProject, use first project
+      const firstProject = projects[0];
+      setCurrentProject(firstProject);
+      router.replace(`/analytics?project_id=${firstProject.id}`);
+    }
+  }, [projectId, currentProject, projects, fetchProject, setCurrentProject, router]);
+
+  if (isLoading || isLoadingProject) {
     return (
       <Layout>
         <div className="max-w-7xl mx-auto">
