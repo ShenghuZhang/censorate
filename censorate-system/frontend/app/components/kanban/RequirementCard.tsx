@@ -15,6 +15,12 @@ interface RequirementCardProps {
 export default function RequirementCard({ requirement, isOverlay = false }: RequirementCardProps) {
   const [showDetail, setShowDetail] = useState(false);
 
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Open in new tab
+    window.open(`/requirements/${requirement.id}`, '_blank');
+  };
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: requirement.id,
     disabled: isOverlay,
@@ -55,9 +61,10 @@ export default function RequirementCard({ requirement, isOverlay = false }: Requ
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowDetail(true);
+                window.open(`/requirements/${requirement.id}`, '_blank');
               }}
               className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+              title="Open in new tab"
             >
               <ExternalLink size={14} className="text-gray-400" />
             </button>
@@ -100,6 +107,7 @@ export default function RequirementCard({ requirement, isOverlay = false }: Requ
         style={style}
         {...attributes}
         {...listeners}
+        onDoubleClick={handleDoubleClick}
         className="bg-white/80 backdrop-blur-xl rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all border border-gray-200/60 group relative cursor-grab active:cursor-grabbing"
       >
         {cardContent}

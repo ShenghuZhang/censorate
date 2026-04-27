@@ -1,8 +1,8 @@
 """Authentication schemas for Censorate API."""
 
 from typing import Optional
-from datetime import datetime
-from pydantic import BaseModel, Field, EmailStr, model_validator
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field, EmailStr, model_validator, field_serializer
 from uuid import UUID
 
 
@@ -49,6 +49,15 @@ class UserResponse(BaseModel):
     is_superuser: bool
     created_at: datetime
     updated_at: Optional[datetime]
+
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
+        """Ensure datetime has timezone info and serialize as ISO."""
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
     class Config:
         """Pydantic configuration."""

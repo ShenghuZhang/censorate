@@ -93,6 +93,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
   const { projects, currentProject, isLoading, fetchProjects, createProject, setCurrentProject, deleteProject } = useProjectStore();
   const { notifications, unreadCount, isOpen: isNotificationsOpen, setIsOpen: setNotificationsOpen } = useNotificationStore();
 
@@ -322,7 +327,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <UserDropdown
               isOpen={isUserDropdownOpen}
               onClose={() => setIsUserDropdownOpen(false)}
-              onLogout={logout}
+              onLogout={handleLogout}
             />
           </div>
         </div>

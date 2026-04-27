@@ -30,6 +30,13 @@ class Requirement(BaseModel):
 
     created_by = Column(String, nullable=False)
     assigned_to = Column(String, nullable=True)
+    assigned_to_name = Column(String(255), nullable=True)
+    expected_completion_at = Column(DateTime, nullable=True)
+
+    # Last forward transition tracking
+    last_forward_assigned_to = Column(String, nullable=True)
+    last_forward_expected_at = Column(DateTime, nullable=True)
+    last_forward_status = Column(String(50), nullable=True)
 
     return_count = Column(Integer, default=0)
     last_returned_at = Column(DateTime, nullable=True)
@@ -40,6 +47,8 @@ class Requirement(BaseModel):
     tasks = relationship("Task", back_populates="requirement")
     test_cases = relationship("TestCase", back_populates="requirement")
     agent_executions = relationship("AgentExecution", back_populates="requirement")
+    status_history = relationship("RequirementStatusHistory", back_populates="requirement", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="requirement", cascade="all, delete-orphan")
 
     __table_args__ = (
         {"extend_existing": True},

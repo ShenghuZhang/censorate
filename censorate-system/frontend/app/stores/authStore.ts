@@ -51,10 +51,13 @@ export const useAuthStore = create<AuthState>()(
         error: null,
 
         login: async (email: string, password: string) => {
+          console.log('=== login attempt ===');
+          console.log('Email:', email);
           set({ isLoading: true, error: null });
           try {
             // Proper API authentication flow
             const response = await authAPI.login({ email, password });
+            console.log('Login response:', response);
 
             set({
               user: response.user,
@@ -63,8 +66,14 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false
             });
 
+            console.log('Updated auth store:', {
+              user: response.user,
+              isAuthenticated: true
+            });
+
             return response;
           } catch (error) {
+            console.error('Login error:', error);
             set({
               error: error instanceof Error ? error.message : 'Login failed',
               isLoading: false

@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { requirementsAPI, type Requirement } from '@/lib/api/requirements';
+import {
+  requirementsAPI,
+  type Requirement,
+  type RequirementStatusHistory,
+  type Comment,
+  type TransitionWithDataRequest,
+  type CreateCommentRequest
+} from '@/lib/api/requirements';
 
 export type RequirementStatus = string;
 export type Priority = 'low' | 'medium' | 'high';
@@ -8,13 +15,20 @@ export type Priority = 'low' | 'medium' | 'high';
 interface RequirementState {
   requirements: Requirement[];
   selectedRequirement: Requirement | null;
+  statusHistory: RequirementStatusHistory[];
+  comments: Comment[];
   isLoading: boolean;
   error: string | null;
   fetchRequirements: (projectId: string) => Promise<void>;
   createRequirement: (projectId: string, data: Partial<Requirement>) => Promise<void>;
   updateRequirement: (id: string, updates: Partial<Requirement>) => Promise<void>;
   transitionRequirement: (id: string, toStatus: string, aiApproved: boolean) => Promise<void>;
+  transitionWithData: (id: string, data: TransitionWithDataRequest) => Promise<void>;
   aiAnalyzeRequirement: (id: string) => Promise<void>;
+  fetchHistory: (id: string) => Promise<void>;
+  fetchComments: (id: string) => Promise<void>;
+  addComment: (id: string, data: CreateCommentRequest) => Promise<void>;
+  uploadAttachment: (id: string, file: File) => Promise<any>;
   getRequirementsByStatus: (status: RequirementStatus) => Requirement[];
   setSelectedRequirement: (requirement: Requirement | null) => void;
 }
@@ -24,6 +38,8 @@ export const useRequirementStore = create<RequirementState>()(
     (set, get) => ({
       requirements: [],
       selectedRequirement: null,
+      statusHistory: [],
+      comments: [],
       isLoading: false,
       error: null,
 
@@ -102,12 +118,52 @@ export const useRequirementStore = create<RequirementState>()(
         }
       },
 
+      transitionWithData: async (id: string, data: TransitionWithDataRequest) => {
+        const updated = await requirementsAPI.transitionWithData(id, data);
+        set((state) => ({
+          requirements: state.requirements.map(req => req.id === id ? updated : req),
+          selectedRequirement: state.selectedRequirement?.id === id ? updated : state.selectedRequirement
+        }));
+      },
+
       aiAnalyzeRequirement: async (id: string) => {
         try {
           await requirementsAPI.aiAnalyzeRequirement(id);
         } catch (error) {
           console.error('Failed to analyze requirement:', error);
         }
+      },
+
+      fetchHistory: async (id: string) => {
+        try {
+          const history = await requirementsAPI.getHistory(id);
+          set({ statusHistory: history });
+        } catch (error) {
+          console.error('Failed to fetch history:', error);
+        }
+      },
+
+      fetchComments: async (id: string) => {
+        try {
+          const comments = await requirementsAPI.getComments(id);
+          console.log('Fetched comments from API:', comments);
+          set({ comments });
+        } catch (error) {
+          console.error('Failed to fetch comments:', error);
+        }
+      },
+
+      addComment: async (id: string, data: CreateCommentRequest) => {
+        console.log('Adding comment with data:', data);
+        const comment = await requirementsAPI.createComment(id, data);
+        console.log('Created comment:', comment);
+        set((state) => ({
+          comments: [...state.comments, comment]
+        }));
+      },
+
+      uploadAttachment: async (id: string, file: File) => {
+        return await requirementsAPI.uploadAttachment(id, file);
       },
 
       getRequirementsByStatus: (status: RequirementStatus) => {

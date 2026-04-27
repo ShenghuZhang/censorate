@@ -121,12 +121,12 @@ export const useTeamStore = create<TeamState>()(
       fetchMembers: async (projectId: string) => {
         set({ isLoading: true, error: null });
         try {
-          // Demo mode - use local data
-          await new Promise(resolve => setTimeout(resolve, 300));
-          set({ members: demoMembers, isLoading: false });
-          return;
-
           const response = await fetch(`${API_BASE_URL}/projects/${projectId}/agents`);
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch members: ${response.status}`);
+          }
+
           const data = await response.json();
 
           // 转换数据格式

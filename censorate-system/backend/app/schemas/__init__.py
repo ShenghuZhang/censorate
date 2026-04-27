@@ -1,6 +1,11 @@
 # Schemas module
 from .project import ProjectCreate, ProjectUpdate, ProjectResponse
-from .requirement import RequirementCreate, RequirementUpdate, RequirementResponse, RequirementTransition
+from .requirement import (
+    RequirementCreate, RequirementUpdate, RequirementResponse,
+    RequirementTransition, RequirementTransitionWithData
+)
+from .requirement_status_history import RequirementStatusHistoryResponse
+from .comment import CommentCreate, CommentUpdate, CommentResponse
 from .task import TaskCreate, TaskUpdate, TaskResponse
 from .agent import (
     AgentCreate, AgentUpdate, AgentResponse,
@@ -27,6 +32,9 @@ from .github_repo import GitHubRepoCreate, GitHubRepoUpdate, GitHubRepoResponse
 __all__ = [
     "ProjectCreate", "ProjectUpdate", "ProjectResponse",
     "RequirementCreate", "RequirementUpdate", "RequirementResponse",
+    "RequirementTransition", "RequirementTransitionWithData",
+    "RequirementStatusHistoryResponse",
+    "CommentCreate", "CommentUpdate", "CommentResponse",
     "TaskCreate", "TaskUpdate", "TaskResponse",
     "AgentCreate", "AgentUpdate", "AgentResponse",
     "ThreadCreate", "AgentExecutionRequest", "AgentMemoryUpdate",

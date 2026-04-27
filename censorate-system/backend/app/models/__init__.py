@@ -2,6 +2,8 @@
 from .base import BaseModel
 from .project import Project
 from .requirement import Requirement
+from .requirement_status_history import RequirementStatusHistory
+from .comment import Comment
 from .task import Task
 from .test_case import TestCase
 from .user import User
@@ -17,6 +19,8 @@ __all__ = [
     "BaseModel",
     "Project",
     "Requirement",
+    "RequirementStatusHistory",
+    "Comment",
     "Task",
     "TestCase",
     "User",
