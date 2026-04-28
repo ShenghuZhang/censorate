@@ -231,6 +231,7 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
               value={requirement.description || ''}
               placeholder="Add a description..."
               minHeight="200px"
+              requirementId={requirement.id}
             />
           ) : (
             <div className="text-gray-700 leading-relaxed">

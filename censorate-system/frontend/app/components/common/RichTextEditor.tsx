@@ -24,7 +24,7 @@ import {
   Highlighter,
   Type,
   Table,
-  MoreHorizontal
+  Loader2
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -32,6 +32,8 @@ interface RichTextEditorProps {
   onChange?: (value: string) => void;
   placeholder?: string;
   minHeight?: string;
+  requirementId?: string;
+  onImageUpload?: (file: File) => Promise<string>;
 }
 
 const COLORS = [
@@ -53,7 +55,14 @@ const HIGHLIGHTS = [
   { name: 'Pink', value: '#FBCFE8' },
 ];
 
-export default function RichTextEditor({ value, onChange, placeholder, minHeight }: RichTextEditorProps) {
+export default function RichTextEditor({
+  value,
+  onChange,
+  placeholder,
+  minHeight,
+  requirementId,
+  onImageUpload
+}: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
@@ -61,6 +70,7 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
   const [showToolbar, setShowToolbar] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const initializedRef = useRef(false);
 
   // Only initialize content once on mount
@@ -119,15 +129,38 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
     }
   };
 
-  const insertImage = () => {
+  const insertImage = async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e: any) => {
+    input.onchange = async (e: any) => {
       const file = e.target.files[0];
       if (file) {
-        const url = URL.createObjectURL(file);
-        execCommand('insertImage', url);
+        if (onImageUpload || requirementId) {
+          // Upload to server
+          setIsUploading(true);
+          try {
+            let imageUrl: string;
+            if (onImageUpload) {
+              imageUrl = await onImageUpload(file);
+            } else {
+              // Use our API directly if requirementId is provided
+              const { attachmentsApi } = await import('@/lib/api/attachments');
+              const attachment = await attachmentsApi.uploadAttachment(requirementId!, file);
+              imageUrl = attachment.url!;
+            }
+            execCommand('insertImage', imageUrl);
+          } catch (error) {
+            console.error('Failed to upload image:', error);
+            alert('Failed to upload image. Please try again.');
+          } finally {
+            setIsUploading(false);
+          }
+        } else {
+          // Fallback to temporary URL if no upload handler
+          const url = URL.createObjectURL(file);
+          execCommand('insertImage', url);
+        }
       }
     };
     input.click();
@@ -179,12 +212,9 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
     { icon: AlignJustify, label: 'Justify', onClick: () => execCommand('justifyFull') },
     { divider: true },
     { icon: LinkIcon, label: 'Link', onClick: insertLink },
-    { icon: ImageIcon, label: 'Image', onClick: insertImage },
+    { icon: isUploading ? Loader2 : ImageIcon, label: 'Image', onClick: insertImage, disabled: isUploading },
     { icon: Table, label: 'Table', onClick: insertTable },
   ];
-
-  // Public method to get content - can be called via ref if needed
-  const getContent = () => editorRef.current?.innerHTML || '';
 
   return (
     <div
@@ -204,14 +234,17 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
             <div key={idx} className="relative">
               <button
                 onClick={btn.onClick}
+                disabled={btn.disabled}
                 className={`p-2 rounded-lg transition-colors ${
-                  btn.isActive
+                  btn.disabled
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : btn.isActive
                     ? 'bg-gray-800 text-white'
                     : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                 }`}
                 title={btn.label}
               >
-                <btn.icon size={16} />
+                <btn.icon size={16} className={btn.disabled ? 'animate-spin' : ''} />
               </button>
               {btn.hasDropdown && showColorPicker && (
                 <div className="absolute top-full left-0 mt-2 p-3 bg-white rounded-lg shadow-xl border border-gray-200 z-20">

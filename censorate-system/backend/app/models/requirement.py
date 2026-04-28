@@ -49,6 +49,7 @@ class Requirement(BaseModel):
     agent_executions = relationship("AgentExecution", back_populates="requirement")
     status_history = relationship("RequirementStatusHistory", back_populates="requirement", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="requirement", cascade="all, delete-orphan")
+    attachments = relationship("Attachment", back_populates="requirement", cascade="all, delete-orphan")
 
     __table_args__ = (
         {"extend_existing": True},
