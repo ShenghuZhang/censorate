@@ -1,4 +1,4 @@
-"""Scheduler - Automated health check scheduling for remote agents."""
+"""Scheduler - Automated health check scheduling and due date reminders."""
 
 import asyncio
 import logging
@@ -13,12 +13,13 @@ from app.core.config import Settings
 from app.api.deps import get_db
 from app.models.remote_agent import RemoteAgent
 from app.services.remote_agent_service import get_remote_agent_service
+from app.services.notification_scheduler_service import get_notification_scheduler_service
 
 logger = logging.getLogger(__name__)
 
 
 class RemoteAgentHealthScheduler:
-    """Scheduler for automated remote agent health checks."""
+    """Scheduler for automated remote agent health checks and due date reminders."""
 
     def __init__(self, settings: Settings):
         """Initialize scheduler."""
@@ -26,6 +27,7 @@ class RemoteAgentHealthScheduler:
         self.scheduler: Optional[AsyncIOScheduler] = None
         self._db_session: Optional[Session] = None
         self._running = False
+        self.notification_scheduler = get_notification_scheduler_service()
 
     async def start(self) -> None:
         """Start the scheduler."""
@@ -37,14 +39,10 @@ class RemoteAgentHealthScheduler:
             logger.warning("Scheduler is already running")
             return
 
-        logger.info("Starting remote agent health scheduler...")
+        logger.info("Starting scheduler...")
 
         # Create scheduler
         self.scheduler = AsyncIOScheduler()
-
-        # Get a database session
-        # We'll get a new session for each health check run
-        # to avoid stale connections
 
         # Add initial job to refresh agent health check schedules
         self.scheduler.add_job(
@@ -55,6 +53,15 @@ class RemoteAgentHealthScheduler:
             replace_existing=True
         )
 
+        # Add job to check due dates hourly
+        self.scheduler.add_job(
+            self._check_due_dates,
+            trigger=IntervalTrigger(hours=1),
+            id="check_due_dates",
+            name="Check requirement due dates",
+            replace_existing=True
+        )
+
         # Start scheduler
         self.scheduler.start()
         self._running = True
@@ -62,7 +69,7 @@ class RemoteAgentHealthScheduler:
         # Do initial schedule refresh immediately
         await self._refresh_schedules()
 
-        logger.info("Remote agent health scheduler started")
+        logger.info("Scheduler started")
 
     async def stop(self) -> None:
         """Stop the scheduler."""
@@ -170,6 +177,26 @@ class RemoteAgentHealthScheduler:
 
         except Exception as e:
             logger.error(f"Failed to check health for agent {agent_id}: {e}", exc_info=True)
+
+    async def _check_due_dates(self) -> None:
+        """Check for upcoming due dates and send reminders (called by scheduler)."""
+        try:
+            logger.info("Checking due dates...")
+            # Get a new database session
+            db_gen = get_db()
+            db = next(db_gen)
+
+            try:
+                self.notification_scheduler.check_due_dates(db)
+            finally:
+                # Close the session
+                try:
+                    db.close()
+                except:
+                    pass
+
+        except Exception as e:
+            logger.error(f"Failed to check due dates: {e}", exc_info=True)
 
 
 # Singleton instance

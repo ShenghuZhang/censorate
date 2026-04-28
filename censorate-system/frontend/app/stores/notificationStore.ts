@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { notificationsAPI, Notification as APINotification } from '@/lib/api/notifications';
 
-export type NotificationType = 'reassignment' | 'due_date_reminder' | 'mention';
+export type NotificationType = 'mention' | 'assignment' | 'due_date_reminder';
 
 export interface Notification {
   id: string;
@@ -17,54 +18,121 @@ interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
   isOpen: boolean;
+  isLoading: boolean;
+  error: string | null;
 
   // Actions
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  removeNotification: (id: string) => void;
+  fetchNotifications: (limit?: number, offset?: number, unreadOnly?: boolean) => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  removeNotification: (id: string) => Promise<void>;
   toggleDropdown: () => void;
   setIsOpen: (open: boolean) => void;
   clearAll: () => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
 }
 
-// Demo notifications
-const demoNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'reassignment',
-    title: 'Requirement Assigned',
-    message: 'REQ-2: Dashboard design has been assigned to you',
-    read: false,
-    createdAt: new Date(Date.now() - 30 * 60 * 1000),
-    requirementId: 'req-2'
-  },
-  {
-    id: '2',
-    type: 'due_date_reminder',
-    title: 'Due Tomorrow',
-    message: 'REQ-1: User login system is due tomorrow',
-    read: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    requirementId: 'req-1'
-  },
-  {
-    id: '3',
-    type: 'mention',
-    title: 'You were mentioned',
-    message: '@you in comment on REQ-3: API endpoints',
-    read: true,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    requirementId: 'req-3'
-  }
-];
+// Convert API notification to store format
+const convertAPIToStore = (apiNotif: APINotification): Notification => ({
+  id: apiNotif.id,
+  type: apiNotif.type,
+  title: apiNotif.title,
+  message: apiNotif.message,
+  read: apiNotif.read,
+  createdAt: new Date(apiNotif.createdAt),
+  requirementId: apiNotif.requirementId
+});
 
 export const useNotificationStore = create<NotificationState>()(
   devtools(
     (set, get) => ({
-      notifications: demoNotifications,
-      unreadCount: demoNotifications.filter(n => !n.read).length,
+      notifications: [],
+      unreadCount: 0,
       isOpen: false,
+      isLoading: false,
+      error: null,
+
+      fetchNotifications: async (limit = 50, offset = 0, unreadOnly = false) => {
+        set({ isLoading: true, error: null });
+        try {
+          const apiNotifications = await notificationsAPI.getNotifications(limit, offset, unreadOnly);
+          const notifications = apiNotifications.map(convertAPIToStore);
+          set({
+            notifications,
+            unreadCount: notifications.filter(n => !n.read).length,
+            isLoading: false
+          });
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Failed to fetch notifications',
+            isLoading: false
+          });
+        }
+      },
+
+      fetchUnreadCount: async () => {
+        try {
+          const count = await notificationsAPI.getUnreadCount();
+          set({ unreadCount: count });
+        } catch (error) {
+          console.error('Failed to fetch unread count:', error);
+        }
+      },
+
+      markAsRead: async (id: string) => {
+        try {
+          await notificationsAPI.markAsRead(id);
+          set((state) => ({
+            notifications: state.notifications.map(n =>
+              n.id === id ? { ...n, read: true } : n
+            ),
+            unreadCount: state.notifications.find(n => n.id === id && !n.read)
+              ? state.unreadCount - 1
+              : state.unreadCount
+          }));
+        } catch (error) {
+          console.error('Failed to mark notification as read:', error);
+        }
+      },
+
+      markAllAsRead: async () => {
+        try {
+          await notificationsAPI.markAllAsRead();
+          set((state) => ({
+            notifications: state.notifications.map(n => ({ ...n, read: true })),
+            unreadCount: 0
+          }));
+        } catch (error) {
+          console.error('Failed to mark all notifications as read:', error);
+        }
+      },
+
+      removeNotification: async (id: string) => {
+        try {
+          await notificationsAPI.deleteNotification(id);
+          set((state) => ({
+            notifications: state.notifications.filter(n => n.id !== id),
+            unreadCount: state.notifications.find(n => n.id === id && !n.read)
+              ? state.unreadCount - 1
+              : state.unreadCount
+          }));
+        } catch (error) {
+          console.error('Failed to delete notification:', error);
+        }
+      },
+
+      toggleDropdown: () => {
+        set((state) => ({ isOpen: !state.isOpen }));
+      },
+
+      setIsOpen: (open: boolean) => {
+        set({ isOpen: open });
+      },
+
+      clearAll: () => {
+        set({ notifications: [], unreadCount: 0 });
+      },
 
       addNotification: (notification) => {
         const newNotification: Notification = {
@@ -78,45 +146,6 @@ export const useNotificationStore = create<NotificationState>()(
           notifications: [newNotification, ...state.notifications],
           unreadCount: state.unreadCount + 1
         }));
-      },
-
-      markAsRead: (id: string) => {
-        set((state) => ({
-          notifications: state.notifications.map(n =>
-            n.id === id ? { ...n, read: true } : n
-          ),
-          unreadCount: state.notifications.find(n => n.id === id && !n.read)
-            ? state.unreadCount - 1
-            : state.unreadCount
-        }));
-      },
-
-      markAllAsRead: () => {
-        set((state) => ({
-          notifications: state.notifications.map(n => ({ ...n, read: true })),
-          unreadCount: 0
-        }));
-      },
-
-      removeNotification: (id: string) => {
-        set((state) => ({
-          notifications: state.notifications.filter(n => n.id !== id),
-          unreadCount: state.notifications.find(n => n.id === id && !n.read)
-            ? state.unreadCount - 1
-            : state.unreadCount
-        }));
-      },
-
-      toggleDropdown: () => {
-        set((state) => ({ isOpen: !state.isOpen }));
-      },
-
-      setIsOpen: (open: boolean) => {
-        set({ isOpen: open });
-      },
-
-      clearAll: () => {
-        set({ notifications: [], unreadCount: 0 });
       }
     })
   )

@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
     REDIS_POOL_SIZE: int = 10
+    # Notification-specific Redis (DB 1)
+    NOTIFICATION_REDIS_URL: str = "redis://localhost:6379/1"
 
     # JWT
     JWT_SECRET_KEY: str = ""

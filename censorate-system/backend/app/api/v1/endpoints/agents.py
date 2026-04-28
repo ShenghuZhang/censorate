@@ -42,17 +42,16 @@ def create_ai_agent(
             detail="Project not found"
         )
 
-    # Check if agent role already exists
-    existing = db.query(TeamMember).filter(
+    # Check if project already has an AI agent
+    existing_agents = db.query(TeamMember).filter(
         TeamMember.project_id == project_id,
-        TeamMember.role == data.role,
         TeamMember.type == "ai",
         TeamMember.archived_at.is_(None)
-    ).first()
-    if existing:
+    ).count()
+    if existing_agents >= 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Agent with role '{data.role}' already exists"
+            detail="Each project can only have one AI agent"
         )
 
     agent = TeamMember(

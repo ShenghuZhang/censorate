@@ -95,25 +95,30 @@ def get_or_create_project(db, users, name="示例项目"):
             db.add(member)
             print(f"Added team member: {user.name}")
 
-        # Add AI agent team members
-        ai_agents = [
-            ("需求分析助手", "analysis"),
-            ("方案设计助手", "design"),
-            ("代码开发助手", "development"),
-            ("测试助手", "testing")
-        ]
+        # Add AI agent team members - only one per project
+        ai_config = {
+            "name": "AI助手",
+            "role": "analysis_agent",
+            "skills": ["需求分析", "方案设计", "代码开发", "测试"],
+            "deepagent_config": {
+                "agent_type": "hermes",
+                "capabilities": ["analysis", "design", "coding", "testing"]
+            }
+        }
 
-        for ai_name, ai_role in ai_agents:
-            member = TeamMember(
-                id=uuid.uuid4(),
-                project_id=project.id,
-                name=ai_name,
-                nickname=ai_name,
-                role=ai_role,
-                type="ai"
-            )
-            db.add(member)
-            print(f"Added AI agent: {ai_name}")
+        member = TeamMember(
+            id=uuid.uuid4(),
+            project_id=project.id,
+            name=ai_config["name"],
+            nickname=ai_config["name"],
+            role=ai_config["role"],
+            type="ai",
+            skills=ai_config["skills"],
+            deepagent_config=ai_config["deepagent_config"],
+            memory_enabled=True
+        )
+        db.add(member)
+        print(f"Added AI agent: {ai_config['name']}")
 
         db.commit()
         db.refresh(project)

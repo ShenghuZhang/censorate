@@ -14,6 +14,7 @@ from .agent_execution import AgentExecution
 from .automation_rule import AutomationRule
 from .remote_agent import RemoteAgent
 from .skill import Skill, SkillVersion, SkillFile, SkillDownload
+from .notification import Notification, UserNotificationPreference, NotificationType
 
 __all__ = [
     "BaseModel",
@@ -33,5 +34,8 @@ __all__ = [
     "Skill",
     "SkillVersion",
     "SkillFile",
-    "SkillDownload"
+    "SkillDownload",
+    "Notification",
+    "UserNotificationPreference",
+    "NotificationType"
 ]

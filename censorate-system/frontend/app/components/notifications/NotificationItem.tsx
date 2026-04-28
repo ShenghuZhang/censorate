@@ -13,6 +13,7 @@ interface NotificationItemProps {
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case 'reassignment':
+    case 'assignment':
       return <User size={18} className="text-blue-500" />;
     case 'due_date_reminder':
       return <Clock size={18} className="text-orange-500" />;
@@ -69,7 +70,7 @@ export default function NotificationItem({
               }`}>
                 {notification.title}
               </h4>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+              <p className="text-xs text-gray-700 mt-1 leading-relaxed">
                 {notification.message}
               </p>
             </div>
@@ -79,14 +80,15 @@ export default function NotificationItem({
                 e.stopPropagation();
                 onRemove(notification.id);
               }}
-              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded-lg transition-all"
+              aria-label="Delete notification"
+              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
             >
               <X size={14} className="text-gray-400" />
             </button>
           </div>
 
           <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-600">
               {getTimeAgo(notification.createdAt)}
             </span>
             {!notification.read && (

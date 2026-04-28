@@ -37,7 +37,7 @@ def init_db():
     from app.models import (
         project, requirement, requirement_status_history, comment, task, test_case, github_repo, user,
         team_member, lane_role, agent_execution, automation_rule, remote_agent,
-        skill
+        skill, notification
     )
     from app.models.base import BaseModel
     BaseModel.metadata.create_all(bind=engine)

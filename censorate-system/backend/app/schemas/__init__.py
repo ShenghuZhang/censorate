@@ -28,6 +28,11 @@ from .skill import (
     CategoryListResponse, SkillStatsResponse
 )
 from .github_repo import GitHubRepoCreate, GitHubRepoUpdate, GitHubRepoResponse
+from .notification import (
+    NotificationResponse, NotificationMarkRead,
+    UserNotificationPreferenceResponse, UserNotificationPreferenceUpdate,
+    UnreadCountResponse, NotificationType
+)
 
 __all__ = [
     "ProjectCreate", "ProjectUpdate", "ProjectResponse",
@@ -48,5 +53,8 @@ __all__ = [
     "SkillFileResponse", "SkillSearchQuery", "SkillSearchResult", "SkillSearchResponse",
     "SkillUploadMetadata", "SkillUploadResponse", "SkillDownloadRecord",
     "CategoryListResponse", "SkillStatsResponse",
-    "GitHubRepoCreate", "GitHubRepoUpdate", "GitHubRepoResponse"
+    "GitHubRepoCreate", "GitHubRepoUpdate", "GitHubRepoResponse",
+    "NotificationResponse", "NotificationMarkRead",
+    "UserNotificationPreferenceResponse", "UserNotificationPreferenceUpdate",
+    "UnreadCountResponse", "NotificationType"
 ]

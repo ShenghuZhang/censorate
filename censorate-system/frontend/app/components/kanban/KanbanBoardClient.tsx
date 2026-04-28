@@ -1,7 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import KanbanBoard from './KanbanBoard';
+import { useState, useEffect } from "react";
+import KanbanBoard from "./KanbanBoard";
+import { AskAIFab } from "./ask-ai-fab";
+import { AskAIWindow } from "./ask-ai-window";
 
 // This wrapper ensures we only render the drag-and-drop board on the client
 export default function KanbanBoardClient() {
@@ -16,15 +18,13 @@ export default function KanbanBoardClient() {
     return (
       <div className="flex flex-col h-[calc(100vh-12rem)]">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="px-4 py-1.5 rounded-xl bg-gray-100 text-gray-900 border border-gray-300 text-sm font-medium">
-              All
-            </div>
+          <div className="px-4 py-1.5 rounded-xl bg-gray-100 text-gray-900 border border-gray-300 text-sm font-medium">
+            All
           </div>
         </div>
         <div className="flex gap-4 overflow-x-auto flex-1 pb-4">
           {/* Placeholder swimlanes */}
-          {['Backlog', 'Todo', 'In Review', 'Done'].map((title) => (
+          {["Backlog", "Todo", "In Review", "Done"].map((title) => (
             <div
               key={title}
               className="min-w-[300px] max-w-[300px] rounded-2xl bg-gray-50/50"
@@ -44,5 +44,11 @@ export default function KanbanBoardClient() {
     );
   }
 
-  return <KanbanBoard />;
+  return (
+    <>
+      <KanbanBoard />
+      <AskAIFab />
+      <AskAIWindow />
+    </>
+  );
 }

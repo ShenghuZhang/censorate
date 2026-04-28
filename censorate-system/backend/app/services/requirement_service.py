@@ -13,6 +13,7 @@ from ..repositories import (
 )
 from .deepagent_service import DeepAgentService
 from .lark_service import LarkService
+from .notification_service import get_notification_service
 from app.core.config import Settings
 
 
@@ -36,6 +37,7 @@ class RequirementService:
         self.agent_exec_repo = agent_exec_repo or AgentExecutionRepository()
         self.lane_role_repo = lane_role_repo or LaneRoleRepository()
         self.history_repo = history_repo or RequirementStatusHistoryRepository()
+        self.notification_service = get_notification_service()
 
     def get_requirement(self, db: Session, requirement_id: UUID) -> Optional[Requirement]:
         """Get a single requirement by ID."""
@@ -149,6 +151,7 @@ class RequirementService:
             raise NotFoundException(f"Requirement {requirement_id} not found")
 
         from_status = requirement.status
+        previous_assignee = requirement.assigned_to
         is_backward = self._is_backward_transition(db, requirement, to_status)
 
         # If backward transition, get last forward assignment
@@ -211,6 +214,55 @@ class RequirementService:
             changed_at=datetime.now(timezone.utc)
         )
         self.history_repo.create(db, history)
+
+        # Send assignment notification if assignee changed
+        try:
+            if assigned_to and assigned_to != previous_assignee:
+                # Get fresh copy from DB to ensure all fields are populated
+                db.refresh(requirement)
+
+                # Find the actual user ID: assigned_to might be a TeamMember ID
+                # First check if it's a TeamMember
+                from ..models.team_member import TeamMember
+                from ..models.user import User
+
+                notification_user_id = None
+
+                try:
+                    # Try to find TeamMember
+                    team_member = db.query(TeamMember).filter(
+                        TeamMember.id == UUID(assigned_to)
+                    ).first()
+
+                    if team_member and team_member.email and team_member.type == "human":
+                        # If it's a human TeamMember with email, find the corresponding User
+                        user = db.query(User).filter(User.email == team_member.email).first()
+                        if user:
+                            notification_user_id = user.id
+                except:
+                    pass
+
+                # If we couldn't find a user, try using the assigned_to directly
+                if not notification_user_id:
+                    try:
+                        notification_user_id = UUID(assigned_to)
+                    except:
+                        pass
+
+                if notification_user_id:
+                    self.notification_service.create_assignment_notification(
+                        db=db,
+                        user_id=notification_user_id,
+                        requirement=requirement,
+                        assigned_by=UUID(changed_by) if changed_by else None,
+                        assigned_by_name=changed_by_name,
+                        previous_assignee=UUID(previous_assignee) if previous_assignee else None
+                    )
+                else:
+                    print(f"Could not find user for assignment: {assigned_to}")
+        except Exception as e:
+            # Don't fail the transition if notification fails
+            print(f"Error sending assignment notification: {e}")
 
         return {
             "success": True,

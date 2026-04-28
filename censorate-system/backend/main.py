@@ -13,6 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.exceptions import CensorateException
 
 from app.api.v1.router import api_router
+from app.api.v1.websockets.notifications import router as notifications_ws_router
 from app.core.config import Settings
 from app.core.database import init_db
 from app.core.logger import get_logger
@@ -131,6 +132,8 @@ app.add_middleware(LoggingMiddleware)
 
 # Include API routers
 app.include_router(api_router, prefix=settings.API_PREFIX)
+# Include WebSocket routes
+app.include_router(notifications_ws_router)
 
 
 @app.get("/")

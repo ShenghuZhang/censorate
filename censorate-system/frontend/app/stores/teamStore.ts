@@ -186,6 +186,12 @@ export const useTeamStore = create<TeamState>()(
       addAgent: async (projectId: string, agent: Omit<AIAgent, 'id' | 'joinedAt' | 'type'>) => {
         set({ isLoading: true });
         try {
+          // Check if we already have an AI agent
+          const currentAgents = get().aiAgents;
+          if (currentAgents.length >= 1) {
+            throw new Error('Each project can only have one AI agent');
+          }
+
           const response = await fetch(`${API_BASE_URL}/projects/${projectId}/agents`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -201,9 +207,10 @@ export const useTeamStore = create<TeamState>()(
         } catch (error) {
           console.error('Failed to add AI agent:', error);
           set({
-            error: 'Failed to add AI agent',
+            error: error instanceof Error ? error.message : 'Failed to add AI agent',
             isLoading: false
           });
+          throw error;
         }
       },
 

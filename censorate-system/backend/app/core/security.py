@@ -64,19 +64,31 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
 ) -> str:
     """Dependency to get the current authenticated user ID."""
-    # Skip token validation temporarily - return a default user id
-    # Try to parse the token if it exists, otherwise return default
+    # Skip token validation temporarily - return testuser for development
+    # Try to parse the token if it exists, otherwise return testuser
     try:
-        user_id = verify_token(credentials.credentials)
-        if user_id is not None:
-            return user_id
+        if credentials and credentials.credentials:
+            user_id = verify_token(credentials.credentials)
+            if user_id is not None:
+                return user_id
     except:
         pass
 
-    # Return a default user id if token validation fails
+    # For development: Find testuser@example.com and return their ID
+    from app.core.database import SessionLocal
+    from app.models.user import User
+    db = SessionLocal()
+    try:
+        test_user = db.query(User).filter(User.email == "testuser@example.com").first()
+        if test_user:
+            return str(test_user.id)
+    finally:
+        db.close()
+
+    # Fallback to random UUID if no test user found
     from uuid import uuid4
     return str(uuid4())
 
