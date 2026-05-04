@@ -1,6 +1,6 @@
 from typing import List
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.requirement import Requirement
@@ -11,8 +11,10 @@ from app.schemas.requirement import (
 )
 from app.schemas.requirement_status_history import RequirementStatusHistoryResponse
 from app.schemas.comment import CommentCreate, CommentResponse
+from app.schemas.attachment import AttachmentResponse
 from app.services.requirement_service import RequirementService
 from app.services.comment_service import CommentService
+from app.services.attachment_service import AttachmentService
 from app.repositories.requirement_status_history_repository import RequirementStatusHistoryRepository
 from app.core.exceptions import (
     NotFoundException,
@@ -23,6 +25,7 @@ from app.core.exceptions import (
 router = APIRouter()
 requirement_service = RequirementService()
 comment_service = CommentService()
+attachment_service = AttachmentService()
 history_repo = RequirementStatusHistoryRepository()
 
 
@@ -342,31 +345,57 @@ def create_comment(
     return new_comment
 
 
-@router.post("/requirements/{requirement_id}/upload-attachment")
+@router.post("/requirements/{requirement_id}/upload-attachment", response_model=AttachmentResponse)
 async def upload_attachment(
     requirement_id: str,
     file: UploadFile = File(...),
+    description: str = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Upload an attachment."""
-    # Verify requirement exists
-    requirement = db.query(Requirement).filter(
-        Requirement.id == requirement_id,
-        Requirement.archived_at.is_(None)
-    ).first()
-    if not requirement:
+    """Upload an attachment to a requirement (stored in MinIO)."""
+    attachment = await attachment_service.upload_attachment(
+        db=db,
+        requirement_id=requirement_id,
+        file=file,
+        uploaded_by="default-user",
+        uploaded_by_name="Default User",
+        description=description
+    )
+    return attachment_service.get_attachment_with_url(db, attachment)
+
+
+@router.get("/requirements/{requirement_id}/attachments", response_model=List[AttachmentResponse])
+def list_attachments(
+    requirement_id: str,
+    db: Session = Depends(get_db)
+):
+    """List all attachments for a requirement."""
+    attachments = attachment_service.get_requirement_attachments(db, requirement_id)
+    return [attachment_service.get_attachment_with_url(db, a) for a in attachments]
+
+
+@router.delete("/requirements/{requirement_id}/attachments/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_attachment(
+    requirement_id: str,
+    attachment_id: str,
+    db: Session = Depends(get_db)
+):
+    """Delete an attachment from MinIO and database."""
+    # Verify attachment belongs to requirement
+    attachment = attachment_service.get_attachment(db, attachment_id)
+    if not attachment or str(attachment.requirement_id) != requirement_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Requirement not found"
+            detail="Attachment not found"
         )
 
-    # TODO: Implement actual file upload
-    # For now, return a mock response
-    return {
-        "filename": file.filename,
-        "content_type": file.content_type,
-        "message": "File upload placeholder - implementation needed"
-    }
+    success = attachment_service.delete_attachment(db, attachment_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attachment not found"
+        )
+    return None
 
 
 @router.post("/requirements/{requirement_id}/ai-analyze")

@@ -15,6 +15,7 @@ from .automation_rule import AutomationRule
 from .remote_agent import RemoteAgent
 from .skill import Skill, SkillVersion, SkillFile, SkillDownload
 from .notification import Notification, UserNotificationPreference, NotificationType
+from .attachment import Attachment
 
 __all__ = [
     "BaseModel",
@@ -37,5 +38,6 @@ __all__ = [
     "SkillDownload",
     "Notification",
     "UserNotificationPreference",
-    "NotificationType"
+    "NotificationType",
+    "Attachment"
 ]

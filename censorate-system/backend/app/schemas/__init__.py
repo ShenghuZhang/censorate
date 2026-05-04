@@ -33,6 +33,9 @@ from .notification import (
     UserNotificationPreferenceResponse, UserNotificationPreferenceUpdate,
     UnreadCountResponse, NotificationType
 )
+from .attachment import (
+    AttachmentCreate, AttachmentUpdate, AttachmentResponse
+)
 
 __all__ = [
     "ProjectCreate", "ProjectUpdate", "ProjectResponse",
@@ -56,5 +59,6 @@ __all__ = [
     "GitHubRepoCreate", "GitHubRepoUpdate", "GitHubRepoResponse",
     "NotificationResponse", "NotificationMarkRead",
     "UserNotificationPreferenceResponse", "UserNotificationPreferenceUpdate",
-    "UnreadCountResponse", "NotificationType"
+    "UnreadCountResponse", "NotificationType",
+    "AttachmentCreate", "AttachmentUpdate", "AttachmentResponse"
 ]

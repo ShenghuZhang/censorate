@@ -76,6 +76,22 @@ class Settings(BaseSettings):
     MAX_TOTAL_SIZE: int = 10 * 1024 * 1024  # 10MB total
     ALLOWED_EXTENSIONS: list = [".md", ".json", ".yaml", ".yml", ".txt", ".py", ".zip"]
 
+    # MinIO Configuration
+    MINIO_ENDPOINT: str = "localhost:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_BUCKET_NAME: str = "censorate-attachments"
+    MINIO_SECURE: bool = False
+    MINIO_PUBLIC_URL: str = "http://localhost:9000"  # Public URL for accessing files
+
+    # Attachment upload limits
+    ATTACHMENT_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB per file
+    ATTACHMENT_ALLOWED_EXTENSIONS: list = [
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg",
+        ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+        ".txt", ".md", ".zip"
+    ]
+
     model_config = {
         "env_file": ".env",
         "case_sensitive": True

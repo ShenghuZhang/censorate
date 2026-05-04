@@ -14,6 +14,7 @@ from .skill_file_repository import SkillFileRepository
 from .skill_download_repository import SkillDownloadRepository
 from .notification_repository import NotificationRepository
 from .user_notification_preference_repository import UserNotificationPreferenceRepository
+from .attachment_repository import AttachmentRepository
 
 __all__ = [
     "BaseRepository",
@@ -30,4 +31,5 @@ __all__ = [
     "SkillDownloadRepository",
     "NotificationRepository",
     "UserNotificationPreferenceRepository",
+    "AttachmentRepository",
 ]
