@@ -36,39 +36,15 @@ interface RichTextEditorProps {
   onImageUpload?: (file: File) => Promise<string>;
 }
 
-const COLORS = [
-  { name: 'Black', value: '#000000' },
-  { name: 'Dark Gray', value: '#374151' },
-  { name: 'Red', value: '#EF4444' },
-  { name: 'Orange', value: '#F97316' },
-  { name: 'Yellow', value: '#EAB308' },
-  { name: 'Green', value: '#22C55E' },
-  { name: 'Blue', value: '#3B82F6' },
-  { name: 'Purple', value: '#A855F7' },
-];
-
-const HIGHLIGHTS = [
-  { name: 'Yellow', value: '#FEF08A' },
-  { name: 'Green', value: '#BBF7D0' },
-  { name: 'Blue', value: '#BFDBFE' },
-  { name: 'Purple', value: '#E9D5FF' },
-  { name: 'Pink', value: '#FBCFE8' },
-];
-
 export default function RichTextEditor({
   value,
   onChange,
   placeholder,
-  minHeight,
+  minHeight = '200px',
   requirementId,
   onImageUpload
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
-  const [isBold, setIsBold] = useState(false);
-  const [isItalic, setIsItalic] = useState(false);
-  const [isUnderline, setIsUnderline] = useState(false);
   const [showToolbar, setShowToolbar] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const initializedRef = useRef(false);
@@ -81,7 +57,7 @@ export default function RichTextEditor({
     }
   }, []);
 
-  // Update content only when value changes from outside (e.g. reset, save complete)
+  // Update content only when value changes from outside
   useEffect(() => {
     if (editorRef.current && initializedRef.current) {
       const currentContent = editorRef.current.innerHTML;
@@ -91,35 +67,60 @@ export default function RichTextEditor({
     }
   }, [value]);
 
-  const execCommand = (command: string, commandValue: string | null = null) => {
-    document.execCommand(command, false, commandValue);
-    editorRef.current?.focus();
-    updateState();
-  };
-
-  const updateState = () => {
-    setIsBold(document.queryCommandState('bold'));
-    setIsItalic(document.queryCommandState('italic'));
-    setIsUnderline(document.queryCommandState('underline'));
-  };
-
   const handleInput = () => {
     if (editorRef.current && onChange) {
       onChange(editorRef.current.innerHTML);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-      e.preventDefault();
-      execCommand('bold');
-    } else if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
-      e.preventDefault();
-      execCommand('italic');
-    } else if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
-      e.preventDefault();
-      execCommand('underline');
+  const execCommand = (command: string, value: string | null = null) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+  };
+
+  const formatBlock = (tag: string) => {
+    // First try with angle brackets
+    try {
+      document.execCommand('formatBlock', false, `<${tag}>`);
+    } catch (e) {
+      // If that fails, try without
+      try {
+        document.execCommand('formatBlock', false, tag);
+      } catch (e2) {
+        // If all else fails, manually wrap selection
+        wrapSelection(tag);
+      }
     }
+    editorRef.current?.focus();
+  };
+
+  const wrapSelection = (tag: string) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString();
+
+    if (!selectedText) {
+      // If no text selected, insert an empty element
+      const element = document.createElement(tag);
+      element.innerHTML = '<br>';
+      range.deleteContents();
+      range.insertNode(element);
+      // Move cursor inside
+      range.setStart(element, 0);
+      range.setEnd(element, 0);
+    } else {
+      // Create the element and wrap the content
+      const element = document.createElement(tag);
+      const content = range.extractContents();
+      element.appendChild(content);
+      range.insertNode(element);
+      // Select the content
+      range.selectNodeContents(element);
+    }
+    selection.removeAllRanges();
+    selection.addRange(range);
   };
 
   const insertLink = () => {
@@ -137,14 +138,12 @@ export default function RichTextEditor({
       const file = e.target.files[0];
       if (file) {
         if (onImageUpload || requirementId) {
-          // Upload to server
           setIsUploading(true);
           try {
             let imageUrl: string;
             if (onImageUpload) {
               imageUrl = await onImageUpload(file);
             } else {
-              // Use our API directly if requirementId is provided
               const { attachmentsApi } = await import('@/lib/api/attachments');
               const attachment = await attachmentsApi.uploadAttachment(requirementId!, file);
               imageUrl = attachment.url!;
@@ -157,7 +156,7 @@ export default function RichTextEditor({
             setIsUploading(false);
           }
         } else {
-          // Fallback to temporary URL if no upload handler
+          // Fallback to temporary URL
           const url = URL.createObjectURL(file);
           execCommand('insertImage', url);
         }
@@ -170,46 +169,39 @@ export default function RichTextEditor({
     const tableHtml = `
       <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
         <tr>
-          <td style="border: 1px solid #ddd; padding: 8px;">Cell 1</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">Cell 2</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">Cell 3</td>
+          <td style="border: 1px solid #ccc; padding: 8px;">Cell 1</td>
+          <td style="border: 1px solid #ccc; padding: 8px;">Cell 2</td>
+          <td style="border: 1px solid #ccc; padding: 8px;">Cell 3</td>
         </tr>
         <tr>
-          <td style="border: 1px solid #ddd; padding: 8px;">Cell 4</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">Cell 5</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">Cell 6</td>
+          <td style="border: 1px solid #ccc; padding: 8px;">Cell 4</td>
+          <td style="border: 1px solid #ccc; padding: 8px;">Cell 5</td>
+          <td style="border: 1px solid #ccc; padding: 8px;">Cell 6</td>
         </tr>
       </table>
     `;
-    execCommand('insertHTML', tableHtml);
+    document.execCommand('insertHTML', false, tableHtml);
+    editorRef.current?.focus();
   };
 
   const toolbarButtons = [
     { icon: Undo, label: 'Undo', onClick: () => execCommand('undo') },
     { icon: Redo, label: 'Redo', onClick: () => execCommand('redo') },
     { divider: true },
-    { icon: Bold, label: 'Bold', onClick: () => execCommand('bold'), isActive: isBold },
-    { icon: Italic, label: 'Italic', onClick: () => execCommand('italic'), isActive: isItalic },
-    { icon: Underline, label: 'Underline', onClick: () => execCommand('underline'), isActive: isUnderline },
+    { icon: Bold, label: 'Bold', onClick: () => execCommand('bold') },
+    { icon: Italic, label: 'Italic', onClick: () => execCommand('italic') },
+    { icon: Underline, label: 'Underline', onClick: () => execCommand('underline') },
     { icon: Strikethrough, label: 'Strikethrough', onClick: () => execCommand('strikeThrough') },
     { divider: true },
-    { icon: Highlighter, label: 'Text Color', onClick: () => setShowColorPicker(!showColorPicker), hasDropdown: true },
-    { icon: Type, label: 'Highlight', onClick: () => setShowHighlightPicker(!showHighlightPicker), hasDropdown: true },
-    { divider: true },
-    { icon: Heading1, label: 'H1', onClick: () => execCommand('formatBlock', 'h1') },
-    { icon: Heading2, label: 'H2', onClick: () => execCommand('formatBlock', 'h2') },
-    { icon: Heading3, label: 'H3', onClick: () => execCommand('formatBlock', 'h3') },
+    { icon: Heading1, label: 'H1', onClick: () => formatBlock('h1') },
+    { icon: Heading2, label: 'H2', onClick: () => formatBlock('h2') },
+    { icon: Heading3, label: 'H3', onClick: () => formatBlock('h3') },
     { divider: true },
     { icon: List, label: 'Bullet List', onClick: () => execCommand('insertUnorderedList') },
     { icon: ListOrdered, label: 'Numbered List', onClick: () => execCommand('insertOrderedList') },
     { divider: true },
-    { icon: Quote, label: 'Quote', onClick: () => execCommand('formatBlock', 'blockquote') },
-    { icon: Code, label: 'Code', onClick: () => execCommand('formatBlock', 'pre') },
-    { divider: true },
-    { icon: AlignLeft, label: 'Align Left', onClick: () => execCommand('justifyLeft') },
-    { icon: AlignCenter, label: 'Align Center', onClick: () => execCommand('justifyCenter') },
-    { icon: AlignRight, label: 'Align Right', onClick: () => execCommand('justifyRight') },
-    { icon: AlignJustify, label: 'Justify', onClick: () => execCommand('justifyFull') },
+    { icon: Quote, label: 'Quote', onClick: () => formatBlock('blockquote') },
+    { icon: Code, label: 'Code', onClick: () => formatBlock('pre') },
     { divider: true },
     { icon: LinkIcon, label: 'Link', onClick: insertLink },
     { icon: isUploading ? Loader2 : ImageIcon, label: 'Image', onClick: insertImage, disabled: isUploading },
@@ -231,72 +223,30 @@ export default function RichTextEditor({
             return <div key={idx} className="w-px bg-gray-300 mx-1" />;
           }
           return (
-            <div key={idx} className="relative">
-              <button
-                onClick={btn.onClick}
-                disabled={btn.disabled}
-                className={`p-2 rounded-lg transition-colors ${
-                  btn.disabled
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : btn.isActive
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                }`}
-                title={btn.label}
-              >
-                <btn.icon size={16} className={btn.disabled ? 'animate-spin' : ''} />
-              </button>
-              {btn.hasDropdown && showColorPicker && (
-                <div className="absolute top-full left-0 mt-2 p-3 bg-white rounded-lg shadow-xl border border-gray-200 z-20">
-                  <div className="grid grid-cols-4 gap-2">
-                    {COLORS.map((color, cIdx) => (
-                      <button
-                        key={cIdx}
-                        onClick={() => {
-                          execCommand('foreColor', color.value);
-                          setShowColorPicker(false);
-                        }}
-                        className="w-8 h-8 rounded-full border border-gray-200 hover:scale-110 transition-transform"
-                        style={{ backgroundColor: color.value }}
-                        title={color.name}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {btn.hasDropdown && showHighlightPicker && (
-                <div className="absolute top-full left-0 mt-2 p-3 bg-white rounded-lg shadow-xl border border-gray-200 z-20">
-                  <div className="grid grid-cols-4 gap-2">
-                    {HIGHLIGHTS.map((color, cIdx) => (
-                      <button
-                        key={cIdx}
-                        onClick={() => {
-                          execCommand('hiliteColor', color.value);
-                          setShowHighlightPicker(false);
-                        }}
-                        className="w-8 h-8 rounded-full border border-gray-200 hover:scale-110 transition-transform"
-                        style={{ backgroundColor: color.value }}
-                        title={color.name}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <button
+              key={idx}
+              onClick={btn.onClick}
+              disabled={btn.disabled}
+              className={`p-2 rounded-lg transition-colors ${
+                btn.disabled
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+              }`}
+              title={btn.label}
+            >
+              <btn.icon size={16} className={btn.disabled ? 'animate-spin' : ''} />
+            </button>
           );
         })}
       </div>
 
-      {/* Editor - uncontrolled, manages its own state */}
+      {/* Editor */}
       <div
         ref={editorRef}
         contentEditable
         onInput={handleInput}
-        onKeyDown={handleKeyDown}
-        onMouseUp={updateState}
-        onKeyUp={updateState}
         placeholder={placeholder}
-        style={{ minHeight: minHeight || '200px' }}
+        style={{ minHeight }}
         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-300 focus:border-gray-400 outline-none transition-all prose prose-sm max-w-none"
       />
     </div>

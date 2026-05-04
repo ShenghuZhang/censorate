@@ -8,9 +8,10 @@ interface CommentInputProps {
   onSubmit: (content: string, attachments?: any[]) => void;
   placeholder?: string;
   isLoading?: boolean;
+  requirementId?: string;
 }
 
-export default function CommentInput({ onSubmit, placeholder, isLoading = false }: CommentInputProps) {
+export default function CommentInput({ onSubmit, placeholder, isLoading = false, requirementId }: CommentInputProps) {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -33,6 +34,7 @@ export default function CommentInput({ onSubmit, placeholder, isLoading = false 
         onChange={setContent}
         placeholder={placeholder || 'Add a comment...'}
         minHeight="120px"
+        requirementId={requirementId}
       />
       <div className="flex items-center justify-end">
         <button

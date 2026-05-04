@@ -258,6 +258,7 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
             <CommentInput
               onSubmit={handleAddComment}
               placeholder="Add a comment..."
+              requirementId={requirement.id}
             />
           </div>
 

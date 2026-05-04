@@ -130,6 +130,7 @@ class AttachmentService:
             "content_type": attachment.content_type,
             "file_size": attachment.file_size,
             "minio_object_name": attachment.minio_object_name,
+            "minio_url": attachment.minio_url,
             "uploaded_by": attachment.uploaded_by,
             "uploaded_by_name": attachment.uploaded_by_name,
             "description": attachment.description,
