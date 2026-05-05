@@ -81,8 +81,12 @@ class Settings(BaseSettings):
     MINIO_ACCESS_KEY: str = "minioadmin"
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_BUCKET_NAME: str = "censorate-attachments"
+    MINIO_SKILLS_BUCKET_NAME: str = "censorate-skills"
     MINIO_SECURE: bool = False
     MINIO_PUBLIC_URL: str = "http://localhost:9000"  # Public URL for accessing files
+
+    # Storage Backend Configuration
+    STORAGE_BACKEND: str = "minio"  # "local" or "minio" - controls where skill files are stored
 
     # Attachment upload limits
     ATTACHMENT_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB per file

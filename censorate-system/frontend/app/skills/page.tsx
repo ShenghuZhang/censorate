@@ -16,7 +16,9 @@ import {
   ArrowDownToLine,
   X,
   FileText,
-  ChevronRight
+  ChevronRight,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { skillsAPI, type Skill, type SkillVersion } from '@/lib/api/skills';
 import { clsx } from 'clsx';
@@ -43,6 +45,11 @@ export default function SkillsPage() {
   const [sortBy, setSortBy] = useState<'latest' | 'popular'>('latest');
   const [skillMdContent, setSkillMdContent] = useState<string | null>(null);
   const [loadingSkillMd, setLoadingSkillMd] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{
+    skill: Skill;
+    type: 'archive' | 'permanent';
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -66,6 +73,40 @@ export default function SkillsPage() {
 
   const handleReload = async () => {
     await loadData();
+  };
+
+  const handleArchiveSkill = async (skill: Skill) => {
+    try {
+      setIsDeleting(true);
+      await skillsAPI.archiveSkill(skill.slug);
+      await loadData();
+      if (selectedSkill?.id === skill.id) {
+        setSelectedSkill(null);
+      }
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Failed to archive skill:', error);
+      alert(error instanceof Error ? error.message : 'Failed to archive skill');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteSkillPermanently = async (skill: Skill) => {
+    try {
+      setIsDeleting(true);
+      await skillsAPI.deleteSkillPermanently(skill.slug);
+      await loadData();
+      if (selectedSkill?.id === skill.id) {
+        setSelectedSkill(null);
+      }
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Failed to delete skill:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete skill');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleUpload = async () => {
@@ -333,6 +374,16 @@ export default function SkillsPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setShowDeleteConfirm({ skill, type: 'archive' });
+                    }}
+                    className="inline-flex items-center gap-1.5 px-2 py-1.5 text-red-600 hover:bg-red-50 rounded transition-all text-xs font-medium"
+                    title="Archive skill"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       handleDownload(skill);
                     }}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-all text-xs font-medium"
@@ -489,7 +540,7 @@ export default function SkillsPage() {
               </button>
             </div>
           </div>
-        </div>
+          </div>
         )}
 
         {/* Skill Detail Dialog */}
@@ -636,11 +687,79 @@ export default function SkillsPage() {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => setShowDeleteConfirm({ skill: selectedSkill, type: 'permanent' })}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium text-sm"
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                  <button
                     onClick={() => handleDownload(selectedSkill, selectedVersion ?? undefined)}
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
                   >
                     <Download size={16} />
                     Download ZIP
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setShowDeleteConfirm(null)} />
+            <div className="relative bg-white rounded-xl shadow-lg max-w-md w-full overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertCircle size={24} className="text-red-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      {showDeleteConfirm.type === 'permanent' ? 'Delete Skill Permanently' : 'Archive Skill'}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {showDeleteConfirm.skill.name}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-gray-600 mb-6">
+                  {showDeleteConfirm.type === 'permanent'
+                    ? 'This will permanently delete the skill and all associated files. This action cannot be undone.'
+                    : 'This will archive the skill, hiding it from the main list but keeping the data.'}
+                </p>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="px-4 py-2.5 text-gray-600 hover:text-gray-900 font-medium text-sm"
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() =>
+                      showDeleteConfirm.type === 'permanent'
+                        ? handleDeleteSkillPermanently(showDeleteConfirm.skill)
+                        : handleArchiveSkill(showDeleteConfirm.skill)
+                    }
+                    className={clsx(
+                      'inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all',
+                      showDeleteConfirm.type === 'permanent'
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : 'bg-gray-600 text-white hover:bg-gray-700'
+                    )}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 size={16} />
+                    {isDeleting
+                      ? 'Deleting...'
+                      : showDeleteConfirm.type === 'permanent'
+                      ? 'Delete Permanently'
+                      : 'Archive'}
                   </button>
                 </div>
               </div>

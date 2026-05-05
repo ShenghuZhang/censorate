@@ -253,6 +253,46 @@ def archive_skill(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
+@router.delete("/skills/{slug}/permanent", status_code=status.HTTP_200_OK)
+def delete_skill_permanently(
+    slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Permanently delete a skill (cannot be undone).
+
+    This deletes all files from storage and removes the database record.
+    """
+    try:
+        skill = skill_service.get_skill(db, slug)
+        skill_service.delete_skill_permanently(db, skill.id)
+        return {
+            "status": "success",
+            "message": f"Skill '{slug}' permanently deleted"
+        }
+    except NotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/skills/{slug}/restore", status_code=status.HTTP_200_OK)
+def restore_skill(
+    slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Restore an archived skill.
+    """
+    try:
+        skill = skill_service.get_skill(db, slug)
+        skill_service.restore_skill(db, skill.id)
+        return {
+            "status": "success",
+            "message": f"Skill '{slug}' restored successfully"
+        }
+    except NotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
 # ===== Version Management =====
 
 @router.get("/skills/{slug}/versions")

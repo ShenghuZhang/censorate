@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { X, Edit, Paperclip, Clock, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Edit, Paperclip, Clock, User, GitCommit, CheckCircle2 } from 'lucide-react';
 import { Requirement, useRequirementStore } from '@/app/stores/requirementStore';
 import { useAuthStore } from '@/app/stores/authStore';
 import HtmlRenderer from '../common/HtmlRenderer';
@@ -14,42 +14,7 @@ interface RequirementDetailProps {
   mode?: 'modal' | 'page';
 }
 
-// Mock data for activities - use real timestamps
-const mockActivities = [
-  {
-    id: '1',
-    type: 'created',
-    title: 'Requirement Created',
-    user: 'Alex Kim',
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: '2',
-    type: 'status',
-    title: 'Status Changed',
-    user: 'System',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    detail: 'Backlog → Todo'
-  },
-  {
-    id: '3',
-    type: 'comment',
-    title: 'Comment Added',
-    user: 'Julian Rossi',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    detail: 'Commented on @REQ-5'
-  },
-  {
-    id: '4',
-    type: 'collaborator',
-    title: 'Collaborator Added',
-    user: 'Alex Kim',
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    detail: 'Julian Rossi'
-  }
-];
-
-// Format date to friendly time display with proper timezone handling
+// Format date to GitHub-style relative time
 const formatTimeAgo = (dateString: string | Date) => {
   if (!dateString) {
     return 'unknown time';
@@ -58,8 +23,6 @@ const formatTimeAgo = (dateString: string | Date) => {
   let date: Date;
 
   if (typeof dateString === 'string') {
-    // Ensure we parse the date correctly - handle both ISO and other formats
-    // If it doesn't have timezone info, treat as UTC
     if (!dateString.includes('Z') && !dateString.includes('+')) {
       date = new Date(dateString + 'Z');
     } else {
@@ -70,7 +33,6 @@ const formatTimeAgo = (dateString: string | Date) => {
   }
 
   if (isNaN(date.getTime())) {
-    console.warn('Invalid date:', dateString);
     return 'unknown time';
   }
 
@@ -80,20 +42,8 @@ const formatTimeAgo = (dateString: string | Date) => {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  // Debug log
-  console.log('🕐 Time info:', {
-    input: dateString,
-    parsed: date.toISOString(),
-    now: now.toISOString(),
-    diffMinutes: diffMins,
-    diffHours,
-    localTime: date.toLocaleString()
-  });
-
-  // Handle future dates gracefully
   if (diffMs < 0) {
     const absMins = Math.abs(diffMins);
-    // If it's less than 1 hour in future, probably just clock drift - show just now
     if (absMins < 60) {
       return 'just now';
     }
@@ -105,14 +55,13 @@ const formatTimeAgo = (dateString: string | Date) => {
     return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
   } else if (diffHours < 24) {
     return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  } else if (diffDays < 30) {
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   } else {
-    // For older dates, use local time with proper format
-    return date.toLocaleString(undefined, {
+    return date.toLocaleDateString(undefined, {
       year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      month: 'short',
+      day: 'numeric'
     });
   }
 };
@@ -122,12 +71,10 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
   const [savedDescription, setSavedDescription] = useState<string | null>(null);
   const { comments, fetchComments, addComment, statusHistory, fetchHistory, updateRequirement, selectedRequirement } = useRequirementStore();
 
-  // Use selectedRequirement from store if available (for page mode), otherwise use prop
   const requirement = (mode === 'page' && selectedRequirement?.id === propRequirement.id)
     ? selectedRequirement
     : propRequirement;
 
-  // Display description - use savedDescription if available (just saved), otherwise use requirement.description
   const displayDescription = savedDescription !== null ? savedDescription : requirement.description;
 
   useEffect(() => {
@@ -139,13 +86,9 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
 
   const handleSaveDescription = async () => {
     try {
-      // Get content directly from editor
       const editorElement = document.querySelector('[contenteditable="true"]');
       const content = editorElement?.innerHTML || '';
-
-      // Save the content locally first for immediate display
       setSavedDescription(content);
-
       await updateRequirement(requirement.id, { description: content });
       setIsEditingDescription(false);
     } catch (error) {
@@ -157,12 +100,7 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
     try {
       const authState = useAuthStore.getState();
       const user = authState.user;
-      console.log('=== handleAddComment ===');
-      console.log('Full auth state:', authState);
-      console.log('Current user:', user);
-
       const authorName = user?.name || user?.email?.split('@')[0] || 'User';
-      console.log('Using authorName:', authorName);
 
       await addComment(requirement.id, {
         content,
@@ -186,184 +124,200 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
     return 'Unassigned';
   };
 
-  // Use only real comments from API, sort newest first
-  console.log('Comments from store:', comments);
   const displayComments = [...comments].sort((a, b) => {
     const dateA = a.createdAt ? new Date(a.createdAt) : new Date();
     const dateB = b.createdAt ? new Date(b.createdAt) : new Date();
     return dateB.getTime() - dateA.getTime();
   });
 
-  // Sort status history - newest first
   const displayHistory = [...statusHistory].sort((a, b) => {
     const dateA = new Date(a.createdAt);
     const dateB = new Date(b.createdAt);
     return dateB.getTime() - dateA.getTime();
   });
 
+  const getStateColor = (status: string) => {
+    const s = status.toLowerCase();
+    if (s.includes('todo') || s.includes('backlog')) return 'bg-gray-500';
+    if (s.includes('progress') || s.includes('design') || s.includes('analysis')) return 'bg-blue-500';
+    if (s.includes('review') || s.includes('testing')) return 'bg-purple-500';
+    if (s.includes('done') || s.includes('complete') || s.includes('deployed')) return 'bg-green-500';
+    return 'bg-gray-500';
+  };
+
   const Content = () => (
-    <div className="flex flex-col lg:flex-row overflow-hidden">
+    <div className="flex flex-col lg:flex-row bg-[#f6f8fa]">
       {/* Left column - Main content */}
-      <div className="flex-1 overflow-y-auto p-8">
-        {/* Description section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Description</h2>
-            <button
-              onClick={() => {
-                if (isEditingDescription) {
-                  handleSaveDescription();
-                } else {
-                  // Clear saved description when starting edit, use latest from requirement
-                  setSavedDescription(null);
-                  setIsEditingDescription(true);
-                }
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-            >
-              <Edit size={14} />
-              {isEditingDescription ? 'Save' : 'Edit Content'}
-            </button>
-          </div>
-
-          {isEditingDescription ? (
-            <RichTextEditor
-              value={requirement.description || ''}
-              placeholder="Add a description..."
-              minHeight="200px"
-              requirementId={requirement.id}
-            />
-          ) : (
-            <div className="text-gray-700 leading-relaxed">
-              {displayDescription ? (
-                <HtmlRenderer content={displayDescription} />
-              ) : (
-                <p className="text-gray-400">No description provided.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Discussions section */}
-        <div>
-          <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Discussions</h2>
-            <span className="bg-gray-100 text-gray-600 text-xs font-semibold px-2 py-0.5 rounded-full">
-              {displayComments.length}
-            </span>
-          </div>
-
-          {/* Comment input using CommentInput component */}
+      <div className="flex-1 min-w-0">
+        {/* Main content area */}
+        <div className="p-4 lg:p-6">
+          {/* Description section */}
           <div className="mb-8">
-            <CommentInput
-              onSubmit={handleAddComment}
-              placeholder="Add a comment..."
-              requirementId={requirement.id}
-            />
-          </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-[#1f2328]">Description</h2>
+              <button
+                onClick={() => {
+                  if (isEditingDescription) {
+                    handleSaveDescription();
+                  } else {
+                    setSavedDescription(null);
+                    setIsEditingDescription(true);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#1f2328] bg-white border border-[#d0d7de] rounded-md hover:bg-[#f6f8fa] hover:border-[#d0d7de] transition-colors"
+              >
+                <Edit size={14} />
+                {isEditingDescription ? 'Save' : 'Edit'}
+              </button>
+            </div>
 
-          {/* Comments list */}
-          <div className="space-y-6">
-            {displayComments.map((comment: any) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                  {comment.avatar || (comment.authorName?.[0]?.toUpperCase() || 'U')}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-gray-900 text-sm">{comment.authorName || comment.user || 'User'}</span>
-                    <span className="text-gray-400 text-xs">
-                      {comment.time || (comment.createdAt ? formatTimeAgo(comment.createdAt) : '')}
-                    </span>
-                  </div>
-                  <div className="text-gray-700 text-sm leading-relaxed">
-                    {comment.content && typeof comment.content === 'string' ? (
-                      <HtmlRenderer content={comment.content} />
-                    ) : (
-                      <p>{comment.content || ''}</p>
-                    )}
-                  </div>
-                  {comment.attachments && comment.attachments.length > 0 && (
-                    <div className="mt-3 flex gap-2">
-                      {comment.attachments.map((file: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl">
-                          <Paperclip size={14} className="text-gray-400" />
-                          <span className="text-sm text-gray-600">{file}</span>
-                        </div>
-                      ))}
-                    </div>
+            {isEditingDescription ? (
+              <div className="border border-[#d0d7de] rounded-md overflow-hidden bg-white">
+                <RichTextEditor
+                  value={requirement.description || ''}
+                  placeholder="Add a description..."
+                  minHeight="200px"
+                  requirementId={requirement.id}
+                />
+              </div>
+            ) : (
+              <div className="border border-[#d0d7de] rounded-md bg-white p-4">
+                <div className="text-[#1f2328]">
+                  {displayDescription ? (
+                    <HtmlRenderer content={displayDescription} />
+                  ) : (
+                    <p className="text-[#656d76]">No description provided.</p>
                   )}
                 </div>
               </div>
-            ))}
+            )}
+          </div>
+
+          {/* Discussions section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="text-base font-semibold text-[#1f2328]">Discussions</h2>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium text-[#1f2328] bg-[#e6edf3] border border-[#d0d7de]">
+                {displayComments.length}
+              </span>
+            </div>
+
+            {/* Comment input */}
+            <div className="mb-6">
+              <CommentInput
+                onSubmit={handleAddComment}
+                placeholder="Add a comment..."
+                requirementId={requirement.id}
+              />
+            </div>
+
+            {/* Comments list */}
+            <div className="space-y-6">
+              {displayComments.map((comment: any) => (
+                <div key={comment.id} className="flex gap-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#0969da] flex items-center justify-center text-white text-xs font-semibold">
+                      {comment.authorName?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="border border-[#d0d7de] rounded-md">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-[#f6f8fa] border-b border-[#d0d7de] rounded-t-md">
+                        <span className="font-semibold text-[#1f2328] text-sm">{comment.authorName || comment.user || 'User'}</span>
+                        <span className="text-[#656d76] text-xs">
+                          commented {comment.createdAt ? formatTimeAgo(comment.createdAt) : ''}
+                        </span>
+                      </div>
+                      <div className="p-4 text-[#1f2328] text-sm">
+                        {comment.content && typeof comment.content === 'string' ? (
+                          <HtmlRenderer content={comment.content} />
+                        ) : (
+                          <p>{comment.content || ''}</p>
+                        )}
+                      </div>
+                      {comment.attachments && comment.attachments.length > 0 && (
+                        <div className="px-4 pb-4">
+                          <div className="flex flex-wrap gap-2">
+                            {comment.attachments.map((file: string, idx: number) => (
+                              <div key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f6f8fa] border border-[#d0d7de] rounded-md">
+                                <Paperclip size={12} className="text-[#656d76]" />
+                                <span className="text-xs text-[#1f2328]">{file}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Right column - Sidebar */}
-      <div className="w-full lg:w-80 border-l border-gray-100 overflow-y-auto max-h-[calc(95vh-140px)]">
-        <div className="p-6 space-y-6">
-          {/* Properties */}
+      <div className="w-full lg:w-80 flex-shrink-0 border-l border-[#d0d7de] bg-[#f6f8fa]">
+        <div className="p-4 lg:p-6 space-y-6">
+          {/* Properties section */}
           <div>
-            <h2 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-4">Properties</h2>
+            <h2 className="text-sm font-semibold text-[#1f2328] mb-3">Properties</h2>
             <div className="space-y-4">
               <div>
-                <span className="text-xs text-gray-500 font-medium mb-1 block">Priority</span>
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                  requirement.priority === 'high'
-                    ? 'bg-orange-100 text-orange-700'
-                    : requirement.priority === 'medium'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-700'
-                }`}>
-                  {requirement.priority.toUpperCase()}
-                </span>
+                <dt className="text-xs font-medium text-[#656d76] mb-1">Priority</dt>
+                <dd>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
+                    requirement.priority === 'high'
+                      ? 'bg-red-100 text-red-800 border border-red-300'
+                      : requirement.priority === 'medium'
+                      ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                      : 'bg-gray-100 text-gray-800 border border-gray-300'
+                  }`}>
+                    {requirement.priority.toUpperCase()}
+                  </span>
+                </dd>
               </div>
               <div>
-                <span className="text-xs text-gray-500 font-medium mb-1 block">Sprint</span>
-                <span className="text-sm font-medium text-gray-900">V1 Core Layout</span>
+                <dt className="text-xs font-medium text-[#656d76] mb-1">Sprint</dt>
+                <dd className="text-sm text-[#1f2328]">V1 Core Layout</dd>
               </div>
             </div>
           </div>
 
-          {/* Share Report button */}
-          <button className="w-full py-3 bg-gray-900 text-white rounded-2xl text-sm font-semibold hover:bg-gray-800 transition-colors">
-            Share Report
-          </button>
+          <hr className="border-[#d0d7de]" />
 
           {/* Activity History */}
           <div>
-            <h2 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-4">Activity History</h2>
+            <h2 className="text-sm font-semibold text-[#1f2328] mb-3">Activity History</h2>
             <div className="space-y-0">
               {displayHistory.length > 0 ? (
                 displayHistory.map((history: any, idx: number) => (
-                  <div key={history.id} className="relative pl-6 pb-6">
-                    {/* Timeline connector */}
+                  <div key={history.id} className="relative pl-6 pb-4">
                     {idx < displayHistory.length - 1 && (
-                      <div className="absolute left-[7px] top-6 bottom-0 w-px bg-gray-200" />
+                      <div className="absolute left-[7px] top-5 bottom-0 w-px bg-[#d0d7de]" />
                     )}
-                    {/* Timeline dot */}
-                    <div className={`absolute left-0 top-1.5 w-3 h-3 rounded-full border-2 ${
-                      history.fromStatus ? 'border-blue-500 bg-blue-100' : 'border-gray-300 bg-white'
+                    <div className={`absolute left-0 top-1.5 w-3 h-3 rounded-full border-2 border-white ${
+                      history.fromStatus ? 'bg-blue-500 border-blue-500' : 'bg-green-500 border-green-500'
                     }`} />
-                    {/* Content */}
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm text-[#1f2328]">
                         {history.fromStatus ? 'Status Changed' : 'Requirement Created'}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-[#656d76] mt-0.5">
                         {history.changedByName || history.changedBy || 'System'} • {formatTimeAgo(history.createdAt)}
                       </p>
                       {history.fromStatus && history.toStatus && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          {history.fromStatus.replace('_', ' ')} → {history.toStatus.replace('_', ' ')}
+                        <p className="text-xs text-[#656d76] mt-1">
+                          <code className="px-1 py-0.5 bg-[#e6edf3] rounded text-xs">{history.fromStatus.replace('_', ' ')}</code>
+                          <span className="mx-1">→</span>
+                          <code className="px-1 py-0.5 bg-[#e6edf3] rounded text-xs">{history.toStatus.replace('_', ' ')}</code>
                         </p>
                       )}
                       {history.note && (
-                        <p className="text-xs text-gray-400 mt-1 italic">{history.note}</p>
+                        <p className="text-xs text-[#656d76] mt-1 italic">{history.note}</p>
                       )}
                       {history.assignedToName || history.assignedTo ? (
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-[#656d76] mt-1">
                           Assigned to: {history.assignedToName || history.assignedTo}
                         </p>
                       ) : null}
@@ -371,31 +325,9 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
                   </div>
                 ))
               ) : (
-                mockActivities.map((activity, idx) => (
-                  <div key={activity.id} className="relative pl-6 pb-6">
-                    {/* Timeline connector */}
-                    {idx < mockActivities.length - 1 && (
-                      <div className="absolute left-[7px] top-6 bottom-0 w-px bg-gray-200" />
-                    )}
-                    {/* Timeline dot */}
-                    <div className="absolute left-0 top-1.5 w-3 h-3 rounded-full border-2 border-gray-300 bg-white" />
-                    {/* Content */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{activity.user} • {formatTimeAgo(activity.createdAt)}</p>
-                      {activity.detail && (
-                        <p className="text-xs text-gray-400 mt-1">{activity.detail}</p>
-                      )}
-                    </div>
-                  </div>
-                ))
+                <div className="text-xs text-[#656d76]">No activity yet</div>
               )}
             </div>
-            {statusHistory.length === 0 && (
-              <button className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
-                View Full Log
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -404,37 +336,47 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
 
   if (mode === 'page') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#f6f8fa]">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <span className="bg-gray-100 text-sm font-bold px-4 py-1.5 rounded-full">
-                REQ-{requirement.reqNumber}
-              </span>
-              <span className="text-sm text-gray-500 font-medium tracking-wide">
-                {formatStatus(requirement.status)}
-              </span>
-            </div>
-          </div>
-
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">{requirement.title}</h1>
-
-          <div className="flex items-center gap-6 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <User size={16} />
-              <span>{formatAssignee()}</span>
-            </div>
-            {requirement.expectedCompletionAt && (
-              <div className="flex items-center gap-2">
-                <Clock size={16} />
-                <span>Due {new Date(requirement.expectedCompletionAt).toLocaleDateString()}</span>
+        <div className="bg-white border-b border-[#d0d7de]">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4">
+            {/* Top bar with REQ number and status */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold text-[#656d76] bg-[#f6f8fa] border border-[#d0d7de]">
+                  REQ-{requirement.reqNumber}
+                </span>
+                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium text-white ${getStateColor(requirement.status)}`}>
+                  <CheckCircle2 size={12} />
+                  {formatStatus(requirement.status)}
+                </span>
               </div>
-            )}
+            </div>
+
+            {/* Title */}
+            <h1 className="text-2xl font-semibold text-[#1f2328] mb-3 leading-tight">
+              {requirement.title}
+            </h1>
+
+            {/* Metadata */}
+            <div className="flex flex-wrap items-center gap-4 text-sm text-[#656d76]">
+              <div className="flex items-center gap-1.5">
+                <User size={14} />
+                <span>{formatAssignee()}</span>
+              </div>
+              {requirement.expectedCompletionAt && (
+                <div className="flex items-center gap-1.5">
+                  <Clock size={14} />
+                  <span>Due {new Date(requirement.expectedCompletionAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <Content />
+        <div className="max-w-7xl mx-auto">
+          <Content />
+        </div>
       </div>
     );
   }
@@ -442,36 +384,37 @@ export default function RequirementDetail({ requirement: propRequirement, onClos
   // Modal mode
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
         {/* Modal Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="bg-white border-b border-[#d0d7de] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="bg-gray-100 text-sm font-bold px-4 py-1.5 rounded-full">
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold text-[#656d76] bg-[#f6f8fa] border border-[#d0d7de]">
               REQ-{requirement.reqNumber}
             </span>
-            <span className="text-sm text-gray-500 font-medium tracking-wide">
+            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium text-white ${getStateColor(requirement.status)}`}>
+              <CheckCircle2 size={12} />
               {formatStatus(requirement.status)}
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+            className="p-1.5 hover:bg-[#f6f8fa] rounded-md transition-colors"
           >
-            <X size={20} className="text-gray-600" />
+            <X size={18} className="text-[#656d76]" />
           </button>
         </div>
 
-        <div className="bg-white px-6 py-4 border-b border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">{requirement.title}</h2>
-          <div className="flex items-center gap-6 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <User size={16} />
+        <div className="bg-white px-4 py-4 border-b border-[#d0d7de]">
+          <h2 className="text-xl font-semibold text-[#1f2328] mb-3">{requirement.title}</h2>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-[#656d76]">
+            <div className="flex items-center gap-1.5">
+              <User size={14} />
               <span>{formatAssignee()}</span>
             </div>
             {requirement.expectedCompletionAt && (
-              <div className="flex items-center gap-2">
-                <Clock size={16} />
-                <span>Due {new Date(requirement.expectedCompletionAt).toLocaleDateString()}</span>
+              <div className="flex items-center gap-1.5">
+                <Clock size={14} />
+                <span>Due {new Date(requirement.expectedCompletionAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
             )}
           </div>

@@ -8,16 +8,23 @@ from io import BytesIO
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional, Any
 from app.core.config import Settings
+from app.core.minio_client import minio_client
+
+
+settings = Settings.get()
+STORAGE_BACKEND = getattr(settings, 'STORAGE_BACKEND', 'local')
 
 
 class StorageService:
-    """Service for managing skill file storage."""
+    """Service for managing skill file storage - supports both local and MinIO backends."""
 
     def __init__(self):
         """Initialize storage service."""
         self.settings = Settings.get()
         self.base_dir = Path(self.settings.SKILL_STORAGE_DIR)
         self._ensure_base_dir()
+        self.storage_backend = getattr(self.settings, 'STORAGE_BACKEND', 'local')
+        print(f"📦 Storage backend: {self.storage_backend}")
 
     def _ensure_base_dir(self) -> None:
         """Ensure base storage directory exists."""
@@ -104,6 +111,62 @@ class StorageService:
         Returns:
             List of {path, storage_path, sha256_hash, file_size, content_type} dicts
         """
+        if self.storage_backend == 'minio':
+            return self._save_to_minio(skill_slug, version, files)
+        else:
+            return self._save_to_local(skill_slug, version, files)
+
+    def _save_to_minio(
+        self,
+        skill_slug: str,
+        version: str,
+        files: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Save skill files to MinIO."""
+        saved_files = []
+
+        for file in files:
+            path = file.get("path", "")
+            content = file.get("content", b"")
+
+            # Clean path
+            clean_path = Path(path).as_posix()
+
+            # Determine content type
+            content_type = self._get_content_type(clean_path)
+
+            # Upload to MinIO
+            object_name, _ = minio_client.upload_skill_file(
+                skill_slug=skill_slug,
+                version=version,
+                file_path=clean_path,
+                file_data=BytesIO(content),
+                content_type=content_type,
+                file_size=len(content)
+            )
+
+            # Compute hash
+            sha256_hash = self.compute_sha256(content)
+
+            # Store with minio:// prefix
+            saved_files.append({
+                "path": clean_path,
+                "storage_path": f"minio://{object_name}",
+                "sha256_hash": sha256_hash,
+                "file_size": len(content),
+                "content_type": content_type
+            })
+
+        print(f"💾 Saved {len(saved_files)} files to MinIO for skill {skill_slug}")
+        return saved_files
+
+    def _save_to_local(
+        self,
+        skill_slug: str,
+        version: str,
+        files: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Save skill files to local filesystem."""
         # Create version directory
         version_dir = self.base_dir / skill_slug / f"v{version}"
         version_dir.mkdir(parents=True, exist_ok=True)
@@ -138,26 +201,51 @@ class StorageService:
                 "content_type": content_type
             })
 
+        print(f"💾 Saved {len(saved_files)} files to local storage for skill {skill_slug}")
         return saved_files
 
     def get_file_path(self, storage_path: str) -> Path:
-        """Get full path to a stored file."""
+        """Get full path to a stored file (local only)."""
         return Path(self.base_dir.parent) / storage_path
 
     def read_file_content(self, storage_path: str) -> Optional[bytes]:
         """Read content of a stored file."""
+        # Check if it's a MinIO path
+        if storage_path.startswith("minio://"):
+            object_name = storage_path[len("minio://"):]
+            return minio_client.get_skill_file(object_name)
+
+        # Fall back to local storage
         file_path = self.get_file_path(storage_path)
         if file_path.exists():
             with open(file_path, "rb") as f:
                 return f.read()
         return None
 
+    def delete_file(self, storage_path: str) -> bool:
+        """Delete a file from storage."""
+        if storage_path.startswith("minio://"):
+            object_name = storage_path[len("minio://"):]
+            return minio_client.delete_skill_file(object_name)
+
+        try:
+            file_path = self.get_file_path(storage_path)
+            if file_path.exists():
+                file_path.unlink()
+            return True
+        except Exception as e:
+            print(f"Error deleting file: {e}")
+            return False
+
     def delete_skill_files(self, skill_slug: str) -> None:
         """Delete all files for a skill."""
-        import shutil
-        skill_dir = self.base_dir / skill_slug
-        if skill_dir.exists():
-            shutil.rmtree(skill_dir)
+        if self.storage_backend == 'minio':
+            minio_client.delete_all_skill_files(skill_slug)
+        else:
+            import shutil
+            skill_dir = self.base_dir / skill_slug
+            if skill_dir.exists():
+                shutil.rmtree(skill_dir)
 
     def extract_zip(self, zip_content: bytes) -> List[Dict[str, Any]]:
         """Extract files from a ZIP archive.

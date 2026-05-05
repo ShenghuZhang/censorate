@@ -10,27 +10,27 @@ interface WorkloadChartProps {
 
 type SortOrder = 'total' | 'name';
 
-// Dynamic color palette for swimlanes
+// GitHub-style color palette for swimlanes
 const SWIMLANE_COLORS = [
-  'bg-gray-500',
-  'bg-blue-500',
-  'bg-amber-500',
-  'bg-green-500',
-  'bg-purple-500',
-  'bg-pink-500',
-  'bg-indigo-500',
-  'bg-red-500',
+  'bg-[#656d76]',
+  'bg-[#0969da]',
+  'bg-[#9a6700]',
+  'bg-[#1a7f37]',
+  'bg-[#8250df]',
+  'bg-[#cf222e]',
+  'bg-[#0550ae]',
+  'bg-[#bc4c00]',
 ];
 
 const SWIMLANE_TEXT_COLORS = [
-  'text-gray-600',
-  'text-blue-600',
-  'text-amber-600',
-  'text-green-600',
-  'text-purple-600',
-  'text-pink-600',
-  'text-indigo-600',
-  'text-red-600',
+  'text-[#656d76]',
+  'text-[#0969da]',
+  'text-[#9a6700]',
+  'text-[#1a7f37]',
+  'text-[#8250df]',
+  'text-[#cf222e]',
+  'text-[#0550ae]',
+  'text-[#bc4c00]',
 ];
 
 export default function WorkloadChart({ data }: WorkloadChartProps) {
@@ -76,14 +76,14 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft border border-border p-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+    <div className="bg-white rounded-2xl shadow-sm border border-[#d0d7de] p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-            <Users size={20} className="text-primary" />
+          <h2 className="text-xl font-semibold text-[#1f2328] flex items-center gap-2">
+            <Users size={20} className="text-[#0969da]" />
             Member Workload
           </h2>
-          <p className="text-sm text-text-muted mt-1">
+          <p className="text-sm text-[#656d76] mt-1">
             Requirements per member by status
           </p>
         </div>
@@ -91,10 +91,10 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => toggleSort('total')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
               sortOrder === 'total'
-                ? 'bg-primary-soft text-primary'
-                : 'bg-surface-soft text-text-secondary hover:bg-surface-softer'
+                ? 'bg-[#ddf4ff] text-[#0969da]'
+                : 'bg-[#f6f8fa] text-[#656d76] hover:bg-[#e6edf3]'
             }`}
           >
             Count
@@ -104,10 +104,10 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
           </button>
           <button
             onClick={() => toggleSort('name')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
               sortOrder === 'name'
-                ? 'bg-primary-soft text-primary'
-                : 'bg-surface-soft text-text-secondary hover:bg-surface-softer'
+                ? 'bg-[#ddf4ff] text-[#0969da]'
+                : 'bg-[#f6f8fa] text-[#656d76] hover:bg-[#e6edf3]'
             }`}
           >
             Name
@@ -122,8 +122,8 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
         <div className="flex items-center gap-6 mb-6 flex-wrap">
           {statusKeys.map((status, index) => (
             <div key={status} className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-md ${SWIMLANE_COLORS[index % SWIMLANE_COLORS.length]}`} />
-              <span className="text-sm text-text-secondary">{formatStatusLabel(status)}</span>
+              <div className={`w-4 h-4 rounded-md ${SWIMLANE_COLORS[index % SWIMLANE_COLORS.length]}`} />
+              <span className="text-sm text-[#656d76]">{formatStatusLabel(status)}</span>
             </div>
           ))}
         </div>
@@ -145,20 +145,20 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
             <div key={member.memberId} className="group">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white font-medium text-base">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#656d76] to-[#1f2328] flex items-center justify-center text-white font-medium text-base">
                     {member.memberName.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium text-text-primary text-base">
+                  <span className="font-medium text-[#1f2328] text-base">
                     {member.memberName}
                   </span>
                 </div>
-                <div className="text-sm text-text-muted">
-                  <span className="font-semibold text-text-primary text-base">{member.total}</span> total
+                <div className="text-sm text-[#656d76]">
+                  <span className="font-semibold text-[#1f2328] text-base">{member.total}</span> total
                 </div>
               </div>
 
               <div className="flex items-center gap-1 h-10">
-                <div className="flex-1 flex h-full rounded-xl overflow-hidden bg-surface-soft">
+                <div className="flex-1 flex h-full rounded-xl overflow-hidden bg-[#f6f8fa]">
                   {statusWidths.map(({ status, count, width }, idx) => (
                     count > 0 && (
                       <div
@@ -177,7 +177,7 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
                 </div>
               </div>
 
-              <div className="flex justify-between text-xs text-text-muted mt-1 flex-wrap gap-2">
+              <div className="flex justify-between text-xs text-[#656d76] mt-1 flex-wrap gap-2">
                 {statusWidths.map(({ status, count }, idx) => (
                   <span key={status}>
                     <span className={`${SWIMLANE_TEXT_COLORS[idx % SWIMLANE_TEXT_COLORS.length]} font-semibold`}>
@@ -192,7 +192,7 @@ export default function WorkloadChart({ data }: WorkloadChartProps) {
 
         {sortedData.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-text-muted">No members found</p>
+            <p className="text-[#656d76]">No members found</p>
           </div>
         )}
       </div>

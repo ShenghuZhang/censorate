@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Send } from 'lucide-react';
 import RichTextEditor from '../common/RichTextEditor';
 
 interface CommentInputProps {
@@ -29,20 +28,21 @@ export default function CommentInput({ onSubmit, placeholder, isLoading = false,
 
   return (
     <div className="space-y-3">
-      <RichTextEditor
-        value={content}
-        onChange={setContent}
-        placeholder={placeholder || 'Add a comment...'}
-        minHeight="120px"
-        requirementId={requirementId}
-      />
+      <div className="border border-[#d0d7de] rounded-md overflow-hidden bg-white">
+        <RichTextEditor
+          value={content}
+          onChange={setContent}
+          placeholder={placeholder || 'Add a comment...'}
+          minHeight="100px"
+          requirementId={requirementId}
+        />
+      </div>
       <div className="flex items-center justify-end">
         <button
           onClick={handleSubmit}
           disabled={!content.trim() || isSubmitting || isLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center px-4 py-1.5 text-sm font-medium text-white bg-[#1a7f37] border border-[#1a7f37]/90 rounded-md hover:bg-[#1f883d] hover:border-[#1f883d]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          <Send size={16} />
           <span>{isSubmitting ? 'Sending...' : 'Comment'}</span>
         </button>
       </div>

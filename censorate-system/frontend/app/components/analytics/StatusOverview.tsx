@@ -44,32 +44,31 @@ export default function StatusOverview({ stats, total }: StatusOverviewProps) {
         return (
           <div
             key={stat.status}
-            className="bg-white rounded-2xl shadow-soft border border-border p-6 hover:shadow-medium transition-all animate-fade-in-up"
-            style={{ animationDelay: `${index * 50}ms` }}
+            className="bg-white rounded-2xl shadow-sm border border-[#d0d7de] p-6 hover:shadow-md transition-all"
           >
             <div className="flex items-start justify-between mb-4">
-              <div className={`p-4 rounded-2xl ${stat.color} shadow-soft`}>
+              <div className={`p-4 rounded-2xl bg-[#0969da]`}>
                 {getStatusIcon(index, stat.label)}
               </div>
               <div className="text-right">
-                <span className="text-4xl font-bold text-text-primary">
+                <span className="text-4xl font-bold text-[#1f2328]">
                   {stat.count}
                 </span>
                 {total > 0 && (
-                  <div className="text-sm text-text-muted mt-1">
+                  <div className="text-sm text-[#656d76] mt-1">
                     {percentage}%
                   </div>
                 )}
               </div>
             </div>
 
-            <h3 className="text-xl font-semibold text-text-secondary mb-3">
+            <h3 className="text-xl font-semibold text-[#656d76] mb-3">
               {stat.label}
             </h3>
 
-            <div className="w-full h-3 bg-surface-softer rounded-full overflow-hidden">
+            <div className="w-full h-3 bg-[#f6f8fa] rounded-full overflow-hidden">
               <div
-                className={`h-full ${stat.color} transition-all duration-500`}
+                className="h-full bg-[#0969da] transition-all duration-500"
                 style={{ width: `${percentage}%` }}
               />
             </div>

@@ -228,6 +228,42 @@ class SkillService:
         skill.is_archived = True
         return self.skill_repo.update(db, skill)
 
+    def restore_skill(self, db: Session, skill_id: uuid.UUID) -> Skill:
+        """Restore an archived skill.
+
+        Args:
+            db: Database session
+            skill_id: Skill ID
+
+        Returns:
+            Restored Skill instance
+        """
+        skill = self.skill_repo.get(db, skill_id)
+        if not skill:
+            raise NotFoundException(f"Skill with id {skill_id} not found")
+        skill.is_archived = False
+        return self.skill_repo.update(db, skill)
+
+    def delete_skill_permanently(self, db: Session, skill_id: uuid.UUID) -> bool:
+        """Permanently delete a skill and all its files from storage.
+
+        Args:
+            db: Database session
+            skill_id: Skill ID
+
+        Returns:
+            True if successful
+        """
+        skill = self.get_skill_by_id(db, skill_id)
+
+        # Delete all files from storage
+        self.storage_service.delete_skill_files(skill.slug)
+
+        # Delete database records
+        self.skill_repo.delete(db, skill_id)
+
+        return True
+
     # ===== Version Management =====
 
     def create_version(

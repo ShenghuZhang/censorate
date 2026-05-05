@@ -189,11 +189,16 @@ class AnalyticsService:
 
         for req in requirements:
             member_id = req.assigned_to or "unassigned"
+            # Use assigned_to_name if available, otherwise fallback to member_id or "Unassigned"
+            member_name = "Unassigned"
+            if member_id != "unassigned":
+                member_name = req.assigned_to_name or member_id
+
             if member_id not in member_workload:
                 # Initialize with all swimlanes
                 workload = {
                     "member_id": member_id,
-                    "member_name": member_id if member_id != "unassigned" else "Unassigned",
+                    "member_name": member_name,
                     "total": 0
                 }
                 # Add each swimlane as a field

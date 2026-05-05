@@ -24,14 +24,14 @@ export default function ThroughputChart({ data }: ThroughputChartProps) {
   const hasData = filteredData.some(d => d.completed > 0 || d.backlog > 0);
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft border border-border p-6 mb-8 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+    <div className="bg-white rounded-2xl shadow-sm border border-[#d0d7de] p-6 mb-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-text-primary flex items-center gap-2">
-            <TrendingUp size={20} className="text-primary" />
+          <h2 className="text-xl font-semibold text-[#1f2328] flex items-center gap-2">
+            <TrendingUp size={20} className="text-[#0969da]" />
             Daily Throughput
           </h2>
-          <p className="text-sm text-text-muted mt-1">
+          <p className="text-sm text-[#656d76] mt-1">
             Track completed work and backlog over time
           </p>
         </div>
@@ -41,10 +41,10 @@ export default function ThroughputChart({ data }: ThroughputChartProps) {
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-xl transition-colors ${
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
                 timeRange === range
-                  ? 'bg-primary text-white'
-                  : 'bg-surface-soft text-text-secondary hover:bg-surface-softer'
+                  ? 'bg-[#0969da] text-white'
+                  : 'bg-[#f6f8fa] text-[#656d76] hover:bg-[#e6edf3]'
               }`}
             >
               {range}
@@ -54,19 +54,19 @@ export default function ThroughputChart({ data }: ThroughputChartProps) {
       </div>
 
       {!hasData ? (
-        <div className="h-64 flex items-center justify-center text-text-muted">
+        <div className="h-64 flex items-center justify-center text-[#656d76]">
           <p>No data yet. Create some requirements to see the chart!</p>
         </div>
       ) : (
         <>
           <div className="flex items-center gap-6 mb-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="text-sm text-text-secondary">Completed Today</span>
+              <div className="w-4 h-4 rounded-full bg-[#1a7f37]" />
+              <span className="text-sm text-[#656d76]">Completed Today</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-sm text-text-secondary">Backlog</span>
+              <div className="w-4 h-4 rounded-full bg-[#0969da]" />
+              <span className="text-sm text-[#656d76]">Backlog</span>
             </div>
           </div>
 
@@ -85,36 +85,36 @@ export default function ThroughputChart({ data }: ThroughputChartProps) {
                     <div className="flex-1 flex flex-col justify-end">
                       {day.completed > 0 ? (
                         <div
-                          className="w-full bg-green-500 rounded-t-md transition-all group-hover:bg-green-600"
+                          className="w-full bg-[#1a7f37] rounded-t-md transition-all group-hover:bg-[#1f883d]"
                           style={{ height: `${completedHeight}%` }}
                         />
                       ) : (
-                        <div className="w-full h-1 bg-surface-soft rounded" />
+                        <div className="w-full h-1 bg-[#f6f8fa] rounded" />
                       )}
                     </div>
                     {/* Backlog column */}
                     <div className="flex-1 flex flex-col justify-end">
                       {day.backlog > 0 ? (
                         <div
-                          className="w-full bg-blue-500 rounded-t-md transition-all group-hover:bg-blue-600"
+                          className="w-full bg-[#0969da] rounded-t-md transition-all group-hover:bg-[#218bff]"
                           style={{ height: `${backlogHeight}%` }}
                         />
                       ) : (
-                        <div className="w-full h-1 bg-surface-soft rounded" />
+                        <div className="w-full h-1 bg-[#f6f8fa] rounded" />
                       )}
                     </div>
                   </div>
 
-                  <div className="text-xs text-text-muted text-center">
+                  <div className="text-xs text-[#656d76] text-center">
                     {formatDate(day.date)}
                   </div>
 
-                  <div className="absolute bottom-20 bg-surface border border-border rounded-xl p-3 shadow-elevated opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-xs whitespace-nowrap">
-                    <div className="text-text-secondary mb-1">
-                      <span className="text-green-600 font-semibold">{day.completed}</span> completed
+                  <div className="absolute bottom-20 bg-white border border-[#d0d7de] rounded-lg p-3 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-xs whitespace-nowrap">
+                    <div className="text-[#656d76] mb-1">
+                      <span className="text-[#1a7f37] font-semibold">{day.completed}</span> completed
                     </div>
-                    <div className="text-text-secondary">
-                      <span className="text-blue-600 font-semibold">{day.backlog}</span> backlog
+                    <div className="text-[#656d76]">
+                      <span className="text-[#0969da] font-semibold">{day.backlog}</span> backlog
                     </div>
                   </div>
                 </div>

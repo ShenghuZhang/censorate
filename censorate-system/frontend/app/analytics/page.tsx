@@ -51,14 +51,14 @@ export default function AnalyticsPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-text-primary flex items-center gap-3">
-                <BarChart3 size={28} className="text-primary" />
+              <h1 className="text-3xl font-bold text-[#1f2328] flex items-center gap-3">
+                <BarChart3 size={28} className="text-[#0969da]" />
                 Analytics
               </h1>
             </div>
           </div>
           <div className="flex items-center justify-center h-64">
-            <Loader2 size={40} className="text-primary animate-spin" />
+            <Loader2 size={40} className="text-[#0969da] animate-spin" />
           </div>
         </div>
       </Layout>
@@ -71,23 +71,23 @@ export default function AnalyticsPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-text-primary flex items-center gap-3">
-                <BarChart3 size={28} className="text-primary" />
+              <h1 className="text-3xl font-bold text-[#1f2328] flex items-center gap-3">
+                <BarChart3 size={28} className="text-[#0969da]" />
                 Analytics
               </h1>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-soft border border-border p-12 text-center">
-            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AlertCircle size={32} className="text-red-500" />
+          <div className="bg-white rounded-lg shadow-sm border border-[#d0d7de] p-12 text-center">
+            <div className="w-16 h-16 bg-[#ffebe9] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <AlertCircle size={32} className="text-[#cf222e]" />
             </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">
+            <h3 className="text-lg font-semibold text-[#1f2328] mb-2">
               Failed to Load Analytics
             </h3>
-            <p className="text-text-muted mb-4">{error}</p>
+            <p className="text-[#656d76] mb-4">{error}</p>
             <button
               onClick={refetch}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              className="px-4 py-2 bg-[#0969da] text-white rounded-lg hover:bg-[#218bff] transition-colors"
             >
               Try Again
             </button>
@@ -102,14 +102,14 @@ export default function AnalyticsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-text-primary flex items-center gap-3">
-              <BarChart3 size={28} className="text-primary" />
+            <h1 className="text-3xl font-bold text-[#1f2328] flex items-center gap-3">
+              <BarChart3 size={28} className="text-[#0969da]" />
               Analytics
             </h1>
-            <p className="text-text-muted mt-2">
+            <p className="text-[#656d76] mt-2">
               View project analytics and insights
               {currentProject && (
-                <span className="text-text-tertiary ml-2">
+                <span className="text-[#8193b2] ml-2">
                   for {currentProject.name}
                 </span>
               )}
@@ -124,14 +124,14 @@ export default function AnalyticsPage() {
             <WorkloadChart data={memberWorkload} />
           </>
         ) : (
-          <div className="bg-white rounded-lg shadow-soft border border-border p-12 text-center">
-            <div className="w-16 h-16 bg-surface-soft rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <BarChart3 size={32} className="text-text-muted" />
+          <div className="bg-white rounded-lg shadow-sm border border-[#d0d7de] p-12 text-center">
+            <div className="w-16 h-16 bg-[#f6f8fa] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <BarChart3 size={32} className="text-[#656d76]" />
             </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">
+            <h3 className="text-lg font-semibold text-[#1f2328] mb-2">
               Select a Project
             </h3>
-            <p className="text-text-muted">
+            <p className="text-[#656d76]">
               Choose a project from the header to view analytics
             </p>
           </div>

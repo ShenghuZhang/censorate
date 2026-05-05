@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '@/app/components/layout/Layout';
-import { Bot, Plus, RefreshCw, MessageSquare, Trash2, Edit2, Settings, Activity } from 'lucide-react';
+import { Bot, Plus, RefreshCw, MessageSquare, Trash2, Edit2, Settings, Activity, Brain, CheckCircle2, XCircle } from 'lucide-react';
 import { remoteAgentsAPI, type RemoteAgent } from '@/lib/api/remoteAgents';
+import { skillsAPI, type Skill } from '@/lib/api/skills';
 import { useProjectStore } from '@/app/stores/projectStore';
 import { useAuth } from '@/app/hooks/useAuth';
 import { clsx } from 'clsx';
@@ -29,7 +30,9 @@ const HealthStatusBadge = ({ status }: { status: AgentStatus }) => {
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<RemoteAgent[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSkills, setIsLoadingSkills] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showChat, setShowChat] = useState<RemoteAgent | null>(null);
   const [showEdit, setShowEdit] = useState<RemoteAgent | null>(null);
@@ -72,9 +75,22 @@ export default function AgentsPage() {
     }
   }, []);
 
+  const loadSkills = useCallback(async () => {
+    setIsLoadingSkills(true);
+    try {
+      const res = await skillsAPI.listSkills();
+      setSkills(res.skills);
+    } catch (error) {
+      console.error('Failed to load skills:', error);
+    } finally {
+      setIsLoadingSkills(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadAgents();
-  }, [loadAgents]);
+    loadSkills();
+  }, [loadAgents, loadSkills]);
 
   // Auto-refresh health status periodically
   useEffect(() => {
@@ -143,6 +159,22 @@ export default function AgentsPage() {
       console.error('Failed to update agent:', error);
       alert(error instanceof Error ? error.message : 'Failed to update agent');
     }
+  };
+
+  // Helper to toggle skill selection
+  const toggleSkill = (
+    skillName: string,
+    currentCapabilities: string,
+    setForm: React.Dispatch<React.SetStateAction<any>>
+  ) => {
+    const caps = currentCapabilities.split(',').map(s => s.trim()).filter(Boolean);
+    const newCaps = caps.includes(skillName)
+      ? caps.filter(c => c !== skillName)
+      : [...caps, skillName];
+    setForm(prev => ({
+      ...prev,
+      capabilities: newCaps.join(', ')
+    }));
   };
 
   // Populate edit form when showEdit changes
@@ -434,14 +466,47 @@ export default function AgentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Capabilities (comma-separated)</label>
-                  <input
-                    type="text"
-                    value={registerForm.capabilities}
-                    onChange={(e) => setRegisterForm({ ...registerForm, capabilities: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                    placeholder="analysis, coding, review"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Capabilities</label>
+                  <div className="mb-2">
+                    <input
+                      type="text"
+                      value={registerForm.capabilities}
+                      onChange={(e) => setRegisterForm({ ...registerForm, capabilities: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                      placeholder="Or select from available skills below"
+                    />
+                  </div>
+                  {isLoadingSkills ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                      <div className="animate-spin w-4 h-4 border-2 border-gray-200 rounded-full border-t-blue-600" />
+                      Loading skills...
+                    </div>
+                  ) : skills.length > 0 ? (
+                    <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                      <p className="text-xs text-gray-500 mb-2">Click to select skills:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {skills.map((skill) => {
+                          const isSelected = registerForm.capabilities.split(',').map(s => s.trim()).includes(skill.name);
+                          return (
+                            <button
+                              key={skill.id}
+                              type="button"
+                              onClick={() => toggleSkill(skill.name, registerForm.capabilities, setRegisterForm)}
+                              className={clsx(
+                                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all',
+                                isSelected
+                                  ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                                  : 'bg-white text-gray-600 hover:bg-gray-100 ring-1 ring-gray-200'
+                              )}
+                            >
+                              {isSelected ? <CheckCircle2 size={12} /> : <Brain size={12} />}
+                              {skill.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -554,14 +619,47 @@ export default function AgentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Capabilities (comma-separated)</label>
-                  <input
-                    type="text"
-                    value={editForm.capabilities}
-                    onChange={(e) => setEditForm({ ...editForm, capabilities: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                    placeholder="analysis, coding, review"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Capabilities</label>
+                  <div className="mb-2">
+                    <input
+                      type="text"
+                      value={editForm.capabilities}
+                      onChange={(e) => setEditForm({ ...editForm, capabilities: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                      placeholder="Or select from available skills below"
+                    />
+                  </div>
+                  {isLoadingSkills ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                      <div className="animate-spin w-4 h-4 border-2 border-gray-200 rounded-full border-t-blue-600" />
+                      Loading skills...
+                    </div>
+                  ) : skills.length > 0 ? (
+                    <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                      <p className="text-xs text-gray-500 mb-2">Click to select skills:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {skills.map((skill) => {
+                          const isSelected = editForm.capabilities.split(',').map(s => s.trim()).includes(skill.name);
+                          return (
+                            <button
+                              key={skill.id}
+                              type="button"
+                              onClick={() => toggleSkill(skill.name, editForm.capabilities, setEditForm)}
+                              className={clsx(
+                                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all',
+                                isSelected
+                                  ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                                  : 'bg-white text-gray-600 hover:bg-gray-100 ring-1 ring-gray-200'
+                              )}
+                            >
+                              {isSelected ? <CheckCircle2 size={12} /> : <Brain size={12} />}
+                              {skill.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

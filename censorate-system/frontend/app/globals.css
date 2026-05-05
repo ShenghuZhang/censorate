@@ -1,42 +1,44 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary: #1e40af;
-  --color-primary-light: #3b82f6;
-  --color-primary-dark: #1e3a8a;
-  --color-primary-soft: #eff6ff;
+  /* GitHub-style color palette */
+  --color-primary: #0969da;
+  --color-primary-light: #218bff;
+  --color-primary-dark: #0858b8;
+  --color-primary-soft: #ddf4ff;
 
-  --color-secondary: #64748b;
-  --color-secondary-light: #94a3b8;
-  --color-secondary-dark: #475569;
+  --color-secondary: #656d76;
+  --color-secondary-light: #8193b2;
+  --color-secondary-dark: #57606a;
 
   --color-surface: #ffffff;
-  --color-surface-soft: #f8fafc;
-  --color-surface-softer: #f1f5f9;
-  --color-surface-softest: #e2e8f0;
+  --color-surface-soft: #f6f8fa;
+  --color-surface-softer: #f3f4f6;
+  --color-surface-softest: #e6edf3;
 
-  --color-background: #f8fafc;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-tertiary: #64748b;
-  --color-text-muted: #94a3b8;
+  --color-background: #f6f8fa;
+  --color-text-primary: #1f2328;
+  --color-text-secondary: #57606a;
+  --color-text-tertiary: #656d76;
+  --color-text-muted: #8193b2;
 
-  --color-success: #059669;
-  --color-success-soft: #f0fdf4;
-  --color-warning: #d97706;
-  --color-warning-soft: #fffbeb;
-  --color-error: #dc2626;
-  --color-error-soft: #fef2f2;
-  --color-info: #2563eb;
-  --color-info-soft: #eff6ff;
+  --color-success: #1a7f37;
+  --color-success-soft: #dafbe1;
+  --color-warning: #9a6700;
+  --color-warning-soft: #fff8c5;
+  --color-error: #cf222e;
+  --color-error-soft: #ffebe9;
+  --color-info: #0550ae;
+  --color-info-soft: #ddf4ff;
 
-  --color-border: #e2e8f0;
-  --color-border-light: #f1f5f9;
-  --color-border-medium: #cbd5e1;
-  --color-ring: #3b82f6;
-  --color-ring-soft: rgba(59, 130, 246, 0.1);
+  --color-border: #d0d7de;
+  --color-border-light: #e6edf3;
+  --color-border-medium: #d0d7de;
+  --color-ring: #0969da;
+  --color-ring-soft: rgba(9, 105, 218, 0.1);
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  /* GitHub-style typography - system fonts */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   --spacing-px: 1px;
@@ -88,90 +90,89 @@ body {
 }
 
 /* ==========================================
-   Rich Text Editor Styles - Clear Hierarchy
+   GitHub-style Rich Text Styles
    ========================================== */
 
 /* Editor container styles */
 [contenteditable] {
-  line-height: 1.7;
+  line-height: 1.5;
 }
 
-/* Headings - Clear visual hierarchy */
+/* GitHub-style Markdown rendering */
 [contenteditable] h1,
 .prose h1,
 .rich-editor-content h1,
 h1 {
-  font-size: 2.25rem !important; /* 36px */
-  font-weight: 800 !important;
-  line-height: 1.2 !important;
-  margin-top: 1.5rem !important;
-  margin-bottom: 0.75rem !important;
-  color: #0f172a !important;
-  letter-spacing: -0.02em !important;
+  font-size: 2em !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  margin-top: 24px !important;
+  margin-bottom: 16px !important;
+  padding-bottom: 0.3em !important;
+  color: #1f2328 !important;
+  border-bottom: 1px solid #d0d7de !important;
 }
 
 [contenteditable] h2,
 .prose h2,
 .rich-editor-content h2,
 h2 {
-  font-size: 1.875rem !important; /* 30px */
-  font-weight: 700 !important;
+  font-size: 1.5em !important;
+  font-weight: 600 !important;
   line-height: 1.25 !important;
-  margin-top: 1.25rem !important;
-  margin-bottom: 0.5rem !important;
-  color: #1e293b !important;
-  letter-spacing: -0.01em !important;
+  margin-top: 24px !important;
+  margin-bottom: 16px !important;
+  padding-bottom: 0.3em !important;
+  color: #1f2328 !important;
+  border-bottom: 1px solid #d0d7de !important;
 }
 
 [contenteditable] h3,
 .prose h3,
 .rich-editor-content h3,
 h3 {
-  font-size: 1.5rem !important; /* 24px */
+  font-size: 1.25em !important;
   font-weight: 600 !important;
-  line-height: 1.3 !important;
-  margin-top: 1rem !important;
-  margin-bottom: 0.5rem !important;
-  color: #334155 !important;
-  letter-spacing: -0.005em !important;
+  line-height: 1.25 !important;
+  margin-top: 24px !important;
+  margin-bottom: 16px !important;
+  color: #1f2328 !important;
 }
 
 [contenteditable] h4,
 .prose h4,
 .rich-editor-content h4,
 h4 {
-  font-size: 1.25rem !important; /* 20px */
+  font-size: 1em !important;
   font-weight: 600 !important;
-  line-height: 1.4 !important;
-  margin-top: 0.75rem !important;
-  margin-bottom: 0.25rem !important;
-  color: #475569 !important;
+  line-height: 1.25 !important;
+  margin-top: 24px !important;
+  margin-bottom: 16px !important;
+  color: #1f2328 !important;
 }
 
 [contenteditable] h5,
 .prose h5,
 .rich-editor-content h5,
 h5 {
-  font-size: 1.125rem !important; /* 18px */
+  font-size: 0.875em !important;
   font-weight: 600 !important;
-  line-height: 1.4 !important;
-  margin-top: 0.5rem !important;
-  margin-bottom: 0.25rem !important;
-  color: #64748b !important;
+  line-height: 1.25 !important;
+  margin-top: 24px !important;
+  margin-bottom: 16px !important;
+  color: #1f2328 !important;
 }
 
 [contenteditable] h6,
 .prose h6,
 .rich-editor-content h6,
 h6 {
-  font-size: 1rem !important; /* 16px */
-  font-weight: 500 !important;
-  line-height: 1.4 !important;
-  margin-top: 0.5rem !important;
-  margin-bottom: 0.25rem !important;
-  color: #64748b !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
+  font-size: 0.85em !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  margin-top: 24px !important;
+  margin-bottom: 16px !important;
+  color: #656d76 !important;
 }
 
 /* Paragraphs and text */
@@ -179,45 +180,41 @@ h6 {
 .prose p,
 .rich-editor-content p,
 p {
-  margin-top: 0.5rem !important;
-  margin-bottom: 0.5rem !important;
-  line-height: 1.7 !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+  line-height: 1.5 !important;
+  color: #1f2328 !important;
 }
 
-/* Blockquote styles */
+/* GitHub-style blockquote */
 [contenteditable] blockquote,
 .prose blockquote,
 .rich-editor-content blockquote,
 blockquote {
-  border-left: 4px solid #e2e8f0 !important;
-  padding-left: 1rem !important;
-  padding-top: 0.5rem !important;
-  padding-bottom: 0.5rem !important;
-  padding-right: 1rem !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  margin-top: 1rem !important;
-  margin-bottom: 1rem !important;
-  font-style: italic !important;
-  color: #64748b !important;
-  background: #f8fafc !important;
-  border-radius: 0 0.5rem 0.5rem 0 !important;
+  margin: 0 !important;
+  padding: 0 1em !important;
+  color: #656d76 !important;
+  border-left: 0.25em solid #d0d7de !important;
+  background: transparent !important;
+  border-radius: 0 !important;
 }
 
-/* Code block styles */
+/* GitHub-style code blocks */
 [contenteditable] pre,
 .prose pre,
 .rich-editor-content pre,
 pre {
-  background: #1e293b !important;
-  color: #e2e8f0 !important;
-  padding: 1rem !important;
-  border-radius: 0.5rem !important;
+  background: #f6f8fa !important;
+  color: #1f2328 !important;
+  padding: 16px !important;
+  border-radius: 6px !important;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
   font-size: 0.875rem !important;
+  line-height: 1.45 !important;
   overflow-x: auto !important;
-  margin-top: 1rem !important;
-  margin-bottom: 1rem !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+  word-wrap: normal !important;
 }
 
 [contenteditable] code,
@@ -226,9 +223,11 @@ pre {
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
   font-size: 0.875em !important;
-  background: #f1f5f9 !important;
+  background: #f6f8fa !important;
   padding: 0.2em 0.4em !important;
-  border-radius: 0.25rem !important;
+  margin: 0 !important;
+  border-radius: 6px !important;
+  white-space: break-spaces !important;
 }
 
 [contenteditable] pre code,
@@ -236,17 +235,19 @@ code {
 .rich-editor-content pre code {
   background: transparent !important;
   padding: 0 !important;
+  border: 0 !important;
+  font-size: 100% !important;
 }
 
-/* Lists */
+/* GitHub-style lists */
 [contenteditable] ul,
 .prose ul,
 .rich-editor-content ul,
 ul {
   list-style-type: disc !important;
-  padding-left: 1.5rem !important;
-  margin-top: 0.5rem !important;
-  margin-bottom: 0.5rem !important;
+  padding-left: 2em !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
 }
 
 [contenteditable] ol,
@@ -254,25 +255,33 @@ ul {
 .rich-editor-content ol,
 ol {
   list-style-type: decimal !important;
-  padding-left: 1.5rem !important;
-  margin-top: 0.5rem !important;
-  margin-bottom: 0.5rem !important;
+  padding-left: 2em !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
 }
 
 [contenteditable] li,
 .prose li,
 .rich-editor-content li,
 li {
-  margin-top: 0.25rem !important;
-  margin-bottom: 0.25rem !important;
+  margin-top: 0.25em !important;
+  margin-bottom: 0.25em !important;
+  color: #1f2328 !important;
 }
 
-/* Links */
+/* GitHub-style links */
 [contenteditable] a,
 .prose a,
 .rich-editor-content a,
 a {
-  color: #2563eb !important;
+  color: #0969da !important;
+  text-decoration: none !important;
+}
+
+[contenteditable] a:hover,
+.prose a:hover,
+.rich-editor-content a:hover,
+a:hover {
   text-decoration: underline !important;
 }
 
@@ -283,16 +292,16 @@ a {
 img {
   max-width: 100% !important;
   height: auto !important;
-  border-radius: 0.5rem !important;
-  margin-top: 1rem !important;
-  margin-bottom: 1rem !important;
+  box-sizing: content-box !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
 }
 
 /* Bold, italic, etc. */
 [contenteditable] strong,
 [contenteditable] b,
 strong, b {
-  font-weight: 700 !important;
+  font-weight: 600 !important;
 }
 
 [contenteditable] em,
@@ -312,26 +321,29 @@ s, strike {
   text-decoration: line-through !important;
 }
 
-/* Horizontal rule */
+/* GitHub-style horizontal rule */
 [contenteditable] hr,
 .prose hr,
 .rich-editor-content hr,
 hr {
-  border: none !important;
-  border-top: 1px solid #e2e8f0 !important;
-  margin-top: 2rem !important;
-  margin-bottom: 2rem !important;
+  height: 0.25em !important;
+  padding: 0 !important;
+  margin: 24px 0 !important;
+  border: 0 !important;
+  background: #d0d7de !important;
 }
 
-/* Tables */
+/* GitHub-style tables */
 [contenteditable] table,
 .prose table,
 .rich-editor-content table,
 table {
   width: 100% !important;
   border-collapse: collapse !important;
-  margin-top: 1rem !important;
-  margin-bottom: 1rem !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+  display: block !important;
+  overflow: auto !important;
 }
 
 [contenteditable] table td,
@@ -339,15 +351,28 @@ table {
 .prose table td,
 .prose table th,
 table td, table th {
-  border: 1px solid #e2e8f0 !important;
-  padding: 0.5rem 0.75rem !important;
+  padding: 6px 13px !important;
+  border: 1px solid #d0d7de !important;
 }
 
 [contenteditable] table th,
 .prose table th,
 table th {
-  background: #f8fafc !important;
+  background: #f6f8fa !important;
   font-weight: 600 !important;
+}
+
+[contenteditable] table tr,
+.prose table tr,
+table tr {
+  background: #ffffff !important;
+  border-top: 1px solid #d0d7de !important;
+}
+
+[contenteditable] table tr:nth-child(2n),
+.prose table tr:nth-child(2n),
+table tr:nth-child(2n) {
+  background: #f6f8fa !important;
 }
 
 /* Placeholder */
