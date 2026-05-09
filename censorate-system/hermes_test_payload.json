@@ -1,0 +1,6 @@
+{
+  "model": "hermes-agent",
+  "messages": [
+    {"role": "user", "content": "Reply with exactly: HERMES_OK"}
+  ]
+}

@@ -1,25 +1,76 @@
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_agent
 from app.models.remote_agent import RemoteAgent
 from app.schemas.remote_agent import (
     RemoteAgentCreate, RemoteAgentUpdate, RemoteAgentResponse,
     HealthCheckResponse, AgentChatRequest, AgentChatResponse,
     RemoteAgentHealthHistoryResponse, RemoteAgentWithHistoryResponse,
-    AgentAcknowledgement, AgentThresholdUpdate
+    AgentAcknowledgement, AgentThresholdUpdate,
+    AgentSkillManifest, AgentSkillListResponse, AgentSkillFileInfo
 )
 from app.services.remote_agent_service import get_remote_agent_service
+from app.services.skills_proxy_service import get_skill_catalog_service
+from app.services import get_skill_service
+
 import httpx
 import json
 import asyncio
+import threading
+from io import BytesIO
+from pathlib import Path
 
 router = APIRouter()
 
 
+def _trigger_skill_sync(api_key: str, hermes_data_path: str, censorate_url: str):
+    """Run skill_manager sync in a background thread after capabilities change.
+
+    Sync writes skill files to Hermes' data directory. Hermes loads skills
+    from the filesystem on each new session start, so changes take effect
+    on the next session without interrupting any running session.
+    """
+    def _run():
+        try:
+            from scripts.skill_manager import SkillManager
+
+            manager = SkillManager(
+                censorate_url=censorate_url,
+                api_key=api_key,
+                hermes_data=Path(hermes_data_path),
+            )
+            results = manager.sync()
+            total = (
+                len(results.get("installed", []))
+                + len(results.get("updated", []))
+                + len(results.get("removed", []))
+            )
+            if total > 0 or results.get("errors"):
+                print(f"[SkillManager] Agent-triggered sync: "
+                      f"installed={len(results.get('installed', []))} "
+                      f"updated={len(results.get('updated', []))} "
+                      f"removed={len(results.get('removed', []))} "
+                      f"errors={len(results.get('errors', []))}")
+                if total > 0 and not results.get("errors"):
+                    print("[SkillManager] Skills updated on disk. "
+                          "Hermes will pick up changes on next session start.")
+        except Exception as e:
+            print(f"[SkillManager] Background sync failed: {e}")
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 # --- Remote Agents CRUD ---
+
+
+@router.get("/remote-agents/available-skills")
+def list_available_skills():
+    """List all available skills that can be assigned to agents."""
+    catalog = get_skill_catalog_service()
+    return catalog.list_available_skills()
 
 
 @router.get("/remote-agents", response_model=List[RemoteAgentResponse])
@@ -34,6 +85,7 @@ def list_remote_agents(db: Session = Depends(get_db)):
 @router.post("/remote-agents", response_model=RemoteAgentResponse, status_code=status.HTTP_201_CREATED)
 def register_remote_agent(
     data: RemoteAgentCreate,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Register a new remote agent."""
@@ -52,7 +104,210 @@ def register_remote_agent(
     db.add(agent)
     db.commit()
     db.refresh(agent)
+
+    if agent.capabilities and agent.api_key:
+        from app.core.config import Settings
+        settings = Settings.get()
+        base_url = str(request.base_url).rstrip("/")
+        censorate_url = f"{base_url}{settings.API_PREFIX}"
+        _trigger_skill_sync(agent.api_key, settings.HERMES_DATA_PATH, censorate_url)
+
     return agent
+
+
+# ===== Agent Skill Hub (Self-Managed Skills) =====
+# NOTE: Must be registered BEFORE /remote-agents/{agent_id} to avoid route conflicts.
+
+def _verify_skill_access(agent: RemoteAgent, slug: str):
+    """Verify that the agent has the given skill in its capabilities."""
+    caps = agent.capabilities or []
+    if slug not in caps:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Skill '{slug}' is not in this agent's capabilities"
+        )
+
+
+def _build_agent_skill_manifest(
+    db: Session,
+    skill,
+    version,
+    base_url: str
+) -> AgentSkillManifest:
+    """Build an agent-facing manifest for a skill version."""
+    skill_service = get_skill_service()
+
+    files = skill_service.get_files_for_version(db, version.id)
+    file_infos = [
+        AgentSkillFileInfo(
+            path=f.path,
+            content_type=f.content_type,
+            file_size=f.file_size,
+            sha256_hash=f.sha256_hash
+        )
+        for f in files
+    ]
+
+    download_url = f"{base_url}/remote-agents/skills/{skill.slug}/download"
+    if version.version:
+        download_url += f"?version={version.version}"
+
+    return AgentSkillManifest(
+        slug=skill.slug,
+        name=skill.name,
+        description=skill.description,
+        category=skill.category,
+        version=version.version,
+        manifest=version.manifest or {},
+        files=file_infos,
+        download_url=download_url,
+        published_at=version.created_at
+    )
+
+
+@router.get("/remote-agents/skills", response_model=AgentSkillListResponse)
+def list_agent_skills(
+    request: Request,
+    agent: RemoteAgent = Depends(get_current_agent),
+    db: Session = Depends(get_db)
+):
+    """List all skills available to the authenticated agent (via capabilities)."""
+    from app.models.skill import Skill
+
+    skill_service = get_skill_service()
+    caps = agent.capabilities or []
+
+    if not caps:
+        return AgentSkillListResponse(count=0, skills=[])
+
+    skills = db.query(Skill).filter(
+        Skill.slug.in_(caps),
+        Skill.is_published == True,
+        Skill.is_archived == False
+    ).all()
+
+    base_url = str(request.base_url).rstrip("/")
+    manifests = []
+    for skill in skills:
+        version = None
+        if skill.latest_version_id:
+            version = skill_service.version_repo.get(db, skill.latest_version_id)
+        if not version:
+            continue
+        manifests.append(_build_agent_skill_manifest(db, skill, version, base_url))
+
+    return AgentSkillListResponse(count=len(manifests), skills=manifests)
+
+
+@router.get("/remote-agents/skills/{slug}", response_model=AgentSkillManifest)
+def get_agent_skill_manifest(
+    slug: str,
+    request: Request,
+    agent: RemoteAgent = Depends(get_current_agent),
+    db: Session = Depends(get_db)
+):
+    """Get the manifest for a specific skill (agent must have it in capabilities)."""
+    _verify_skill_access(agent, slug)
+
+    skill_service = get_skill_service()
+
+    skill = skill_service.get_skill(db, slug)
+    version = None
+    if skill.latest_version_id:
+        version = skill_service.version_repo.get(db, skill.latest_version_id)
+    if not version:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No version available for this skill"
+        )
+
+    base_url = str(request.base_url).rstrip("/")
+    return _build_agent_skill_manifest(db, skill, version, base_url)
+
+
+@router.get("/remote-agents/skills/{slug}/download")
+def download_agent_skill(
+    slug: str,
+    version: Optional[str] = None,
+    agent: RemoteAgent = Depends(get_current_agent),
+    db: Session = Depends(get_db)
+):
+    """Download a skill as a ZIP (agent must have it in capabilities)."""
+    _verify_skill_access(agent, slug)
+
+    skill_service = get_skill_service()
+
+    skill = skill_service.get_skill(db, slug)
+
+    ver = None
+    if version:
+        ver = skill_service.get_version(db, skill.id, version)
+        version_id = ver.id
+    else:
+        version_id = skill.latest_version_id
+
+    if not version_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No version available"
+        )
+
+    zip_content = skill_service.generate_zip(db, skill.id, version_id)
+    version_str = ver.version if ver else "latest"
+    filename = f"{skill.slug}-{version_str}.zip"
+
+    return StreamingResponse(
+        BytesIO(zip_content),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "private, max-age=60"
+        }
+    )
+
+
+@router.get("/remote-agents/skills/{slug}/files/{file_path:path}")
+def download_agent_skill_file(
+    slug: str,
+    file_path: str,
+    version: Optional[str] = None,
+    agent: RemoteAgent = Depends(get_current_agent),
+    db: Session = Depends(get_db)
+):
+    """Download a single file from a skill (agent must have it in capabilities)."""
+    _verify_skill_access(agent, slug)
+
+    skill_service = get_skill_service()
+
+    skill = skill_service.get_skill(db, slug)
+
+    if version:
+        ver = skill_service.get_version(db, skill.id, version)
+        version_id = ver.id
+    else:
+        version_id = skill.latest_version_id
+
+    if not version_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No version available"
+        )
+
+    content = skill_service.get_file_content(db, version_id, file_path)
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found"
+        )
+
+    file_record = skill_service.file_repo.get_by_version_and_path(db, version_id, file_path)
+    media_type = file_record.content_type if file_record else "application/octet-stream"
+
+    return StreamingResponse(
+        BytesIO(content),
+        media_type=media_type,
+        headers={"Content-Disposition": f'inline; filename="{file_path}"'}
+    )
 
 
 @router.get("/remote-agents/{agent_id}", response_model=RemoteAgentResponse)
@@ -100,6 +355,7 @@ def get_remote_agent_with_history(
 def update_remote_agent(
     agent_id: str,
     data: RemoteAgentUpdate,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Update a remote agent."""
@@ -114,12 +370,28 @@ def update_remote_agent(
         )
 
     update_data = data.model_dump(exclude_unset=True)
+
+    # Detect capabilities change to trigger skill sync
+    caps_changed = False
+    if "capabilities" in update_data:
+        old_caps = set(agent.capabilities or [])
+        new_caps = set(update_data["capabilities"] or [])
+        caps_changed = (old_caps != new_caps)
+
     for field, value in update_data.items():
         if hasattr(agent, field):
             setattr(agent, field, value)
 
     db.commit()
     db.refresh(agent)
+
+    if caps_changed and agent.api_key:
+        from app.core.config import Settings
+        settings = Settings.get()
+        base_url = str(request.base_url).rstrip("/")
+        censorate_url = f"{base_url}{settings.API_PREFIX}"
+        _trigger_skill_sync(agent.api_key, settings.HERMES_DATA_PATH, censorate_url)
+
     return agent
 
 
@@ -309,19 +581,26 @@ async def send_chat_message(
                 if session_id:
                     headers["X-Hermes-Session-Id"] = session_id
 
-                # Build Hermes compatible request
-                hermes_request = {
+                # Skills are managed by skill_manager (hub-installed in Hermes).
+                # Inject hub skill metadata so the model knows which skills are available.
+                catalog = get_skill_catalog_service()
+                hub_msg = catalog.build_hub_skills_message(agent.capabilities or [])
+
+                messages = []
+                if hub_msg:
+                    messages.append(hub_msg)
+                messages.append({"role": "user", "content": request.message})
+
+                payload = {
                     "model": "hermes-agent",
-                    "messages": [
-                        {"role": "user", "content": request.message}
-                    ],
-                    **(request.config or {})
+                    "messages": messages,
+                    **(request.config or {}),
                 }
 
                 response = await client.post(
                     chat_url,
                     headers=headers,
-                    json=hermes_request,
+                    json=payload,
                     timeout=timeout
                 )
                 response.raise_for_status()
@@ -430,3 +709,4 @@ async def stream_chat_message(
             "Connection": "keep-alive",
         }
     )
+

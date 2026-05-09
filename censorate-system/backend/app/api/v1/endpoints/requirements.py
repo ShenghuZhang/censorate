@@ -1,6 +1,6 @@
 from typing import List
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.requirement import Requirement
@@ -168,108 +168,78 @@ def delete_requirement(requirement_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/requirements/{requirement_id}/transition", response_model=RequirementResponse)
-def transition_requirement(
+async def transition_requirement(
     requirement_id: str,
     transition: RequirementTransition,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    """Transition a requirement to a new status (supports dynamic swimlanes)."""
-    requirement = db.query(Requirement).filter(
-        Requirement.id == requirement_id,
-        Requirement.archived_at.is_(None)
-    ).first()
-    if not requirement:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Requirement not found"
+    """Transition requirement status."""
+    from uuid import UUID
+    try:
+        req_uuid = UUID(requirement_id)
+        # transition_with_agent handles agent dispatch + status update
+        await requirement_service.transition_with_agent(
+            db=db,
+            requirement_id=req_uuid,
+            to_status=transition.to_status
         )
-
-    # Get project for potential backward transition detection (optional)
-    project = db.query(Project).filter(Project.id == requirement.project_id).first()
-
-    # Get swimlane configuration from project settings if available
-    swimlanes = []
-    if project and project.settings and "swimlanes" in project.settings:
-        swimlanes = project.settings["swimlanes"]
-
-    # Try to detect backward transitions using project swimlane order if available
-    if swimlanes:
-        try:
-            # Convert status to display names for comparison (handle slugified vs display names)
-            from_slug = requirement.status.lower().replace('_', ' ')
-            to_slug = transition.to_status.lower().replace('_', ' ')
-
-            # Find indices (case-insensitive partial match)
-            from_index = None
-            to_index = None
-
-            for i, lane in enumerate(swimlanes):
-                lane_slug = lane.lower().replace(' ', '_')
-                if lane_slug == requirement.status or lane.lower() == from_slug:
-                    from_index = i
-                if lane_slug == transition.to_status or lane.lower() == to_slug:
-                    to_index = i
-
-            if from_index is not None and to_index is not None and to_index < from_index:
-                requirement.return_count += 1
-                requirement.last_returned_at = datetime.utcnow()
-        except Exception:
-            # If anything fails, skip backward transition tracking
-            pass
-
-    requirement.status = transition.to_status
-
-    # Check if we're moving to a "done-like" state (last swimlane or contains "done"/"complete" in name)
-    is_done_state = False
-    if swimlanes and transition.to_status == swimlanes[-1].lower().replace(' ', '_'):
-        is_done_state = True
-    elif "done" in transition.to_status.lower() or "complete" in transition.to_status.lower():
-        is_done_state = True
-
-    if is_done_state:
-        requirement.completed_at = datetime.utcnow()
-    else:
-        requirement.completed_at = None
-
-    db.commit()
-    db.refresh(requirement)
-    return requirement
+        requirement = db.query(Requirement).filter(Requirement.id == requirement_id).first()
+        if not requirement:
+            raise NotFoundException(f"Requirement {requirement_id} not found")
+        
+        # Dispatch to AI agent in background (session-safe)
+        background_tasks.add_task(
+            requirement_service._dispatch_to_assigned_agent_background,
+            requirement.id, transition.to_status
+        )
+        
+        return requirement
+    except NotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid ID: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.post("/requirements/{requirement_id}/transition-with-data", response_model=RequirementResponse)
-def transition_requirement_with_data(
+async def transition_requirement_with_data(
     requirement_id: str,
     transition: RequirementTransitionWithData,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Transition requirement with assignment and expected date."""
-    import asyncio
+    from uuid import UUID
     try:
-        # Run async function synchronously
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    try:
-        requirement = loop.run_until_complete(
-            requirement_service.transition_with_data(
-                db,
-                requirement_id,
-                transition.to_status,
-                transition.assigned_to,
-                transition.assigned_to_name,
-                transition.expected_completion_at,
-                transition.note,
-                transition.changed_by,
-                transition.changed_by_name
-            )
+        req_uuid = UUID(requirement_id)
+        await requirement_service.transition_with_data(
+            db,
+            req_uuid,
+            transition.to_status,
+            transition.assigned_to,
+            transition.assigned_to_name,
+            transition.expected_completion_at,
+            transition.note,
+            transition.changed_by,
+            transition.changed_by_name
         )
-        # Refresh from DB to get updated entity
         db_req = db.query(Requirement).filter(Requirement.id == requirement_id).first()
+        if not db_req:
+            raise NotFoundException(f"Requirement {requirement_id} not found")
+        # Dispatch to AI agent if assigned to one (runs in background, session-safe)
+        background_tasks.add_task(
+            requirement_service._dispatch_to_assigned_agent_background,
+            db_req.id, transition.to_status
+        )
         return db_req
     except NotFoundException as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid ID: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.get("/requirements/{requirement_id}/history", response_model=List[RequirementStatusHistoryResponse])

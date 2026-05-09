@@ -26,9 +26,9 @@ export default function MembersTab() {
 
   const filteredMembers = allMembers.filter(member => {
     const matchesSearch =
-      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.nickname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.role.toLowerCase().includes(searchQuery.toLowerCase());
+      (member.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (member.nickname || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (member.role || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesType =
       filterType === 'all' ||
@@ -153,9 +153,9 @@ export default function MembersTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredMembers.map((member) => (
+          {filteredMembers.map((member, index) => (
             <MemberCard
-              key={member.id}
+              key={`${member.type}-${member.id || index}`}
               member={member}
               onRemove={handleRemoveMember}
             />
@@ -167,6 +167,7 @@ export default function MembersTab() {
       <AddAgentDialog
         isOpen={showAddAgent}
         onClose={() => setShowAddAgent(false)}
+        projectId={currentProject?.id || ''}
         existingRoles={aiAgents.map(a => a.role)}
       />
     </div>
