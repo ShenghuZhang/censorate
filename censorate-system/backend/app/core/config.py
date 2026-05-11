@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     SKILLS_DIR: str = "app/skills"
     SKILL_STORAGE_DIR: str = "app/storage/skills"
 
+    # Hermes data path (for skill_manager sync)
+    HERMES_DATA_PATH: str = "../hermes_data"
+
     # Encryption (for API keys)
     ENCRYPTION_KEY: str = ""
 
@@ -81,6 +84,7 @@ class Settings(BaseSettings):
     MINIO_ACCESS_KEY: str = "minioadmin"
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_BUCKET_NAME: str = "censorate-attachments"
+    MINIO_SKILLS_BUCKET_NAME: str = "censorate-skills"
     MINIO_SECURE: bool = False
     MINIO_PUBLIC_URL: str = "http://localhost:9000"  # Public URL for accessing files
 
@@ -94,7 +98,8 @@ class Settings(BaseSettings):
 
     model_config = {
         "env_file": ".env",
-        "case_sensitive": True
+        "case_sensitive": True,
+        "extra": "ignore"
     }
 
     @classmethod

@@ -8,10 +8,11 @@ import { X, AlertCircle } from 'lucide-react';
 interface AddAgentDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  projectId: string;
   existingRoles: string[];
 }
 
-export default function AddAgentDialog({ isOpen, onClose, existingRoles }: AddAgentDialogProps) {
+export default function AddAgentDialog({ isOpen, onClose, projectId, existingRoles }: AddAgentDialogProps) {
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [registeredAgents, setRegisteredAgents] = useState<RemoteAgent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +21,6 @@ export default function AddAgentDialog({ isOpen, onClose, existingRoles }: AddAg
   const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { addAgent, aiAgents } = useTeamStore();
-  const projectId = '3cfd0fdd-7e9c-42fa-9df1-a663ce735cda';
 
   const availableRoles = [
     'analysis_agent',
