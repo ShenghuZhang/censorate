@@ -12,6 +12,7 @@ from .skill_service import SkillService, get_skill_service
 from .storage_service import StorageService, get_storage_service
 from .zip_service import ZipService, get_zip_service
 from .automation_service import AutomationService
+from .skills_proxy_service import SkillCatalogService, get_skill_catalog_service
 
 __all__ = [
     "DeepAgentService",
@@ -28,5 +29,7 @@ __all__ = [
     "get_storage_service",
     "ZipService",
     "get_zip_service",
-    "AutomationService"
+    "AutomationService",
+    "SkillCatalogService",
+    "get_skill_catalog_service",
 ]

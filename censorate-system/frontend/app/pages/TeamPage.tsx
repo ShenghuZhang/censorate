@@ -55,6 +55,7 @@ export default function TeamPage() {
         <AddAgentDialog
           isOpen={showAddAgent}
           onClose={() => setShowAddAgent(false)}
+          projectId={projectId}
           existingRoles={aiAgents.map(a => a.role)}
         />
       </div>

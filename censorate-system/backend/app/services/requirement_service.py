@@ -108,13 +108,26 @@ class RequirementService:
                 await self._update_requirement_status(
                     db, requirement_id, to_status, result
                 )
+                # Post agent output as a comment on the card
+                agent_output = result.get("result") or result.get("response") or result.get("message")
+                if agent_output:
+                    from ..models.comment import Comment
+                    agent_name = lane_role.agent_type.replace("_", " ").title() if lane_role.agent_type else "AI Agent"
+                    comment = Comment(
+                        requirement_id=requirement_id,
+                        content=str(agent_output),
+                        author_name=agent_name,
+                        is_ai=True,
+                    )
+                    db.add(comment)
+                    db.commit()
 
             return result
         else:
-            # No agent configured, just update status
-            return await self._update_requirement_status(
-                db, requirement_id, to_status, {}
-            )
+            # No lane_role configured — just update status.
+            # Agent dispatch is handled by the endpoint layer uniformly.
+            await self._update_requirement_status(db, requirement_id, to_status, {})
+            return {"success": True, "requirement_id": str(requirement_id)}
 
     async def transition_with_data(
         self,
@@ -221,33 +234,35 @@ class RequirementService:
                 # Get fresh copy from DB to ensure all fields are populated
                 db.refresh(requirement)
 
-                # Find the actual user ID: assigned_to might be a TeamMember ID
-                # First check if it's a TeamMember
                 from ..models.team_member import TeamMember
                 from ..models.user import User
 
                 notification_user_id = None
 
                 try:
-                    # Try to find TeamMember
                     team_member = db.query(TeamMember).filter(
                         TeamMember.id == UUID(assigned_to)
                     ).first()
 
-                    if team_member and team_member.email and team_member.type == "human":
-                        # If it's a human TeamMember with email, find the corresponding User
+                    # Skip notifications for AI agents — they don't have user accounts
+                    if team_member and team_member.type == "ai":
+                        pass  # AI agent assigned, no notification needed
+                    elif team_member and team_member.email and team_member.type == "human":
+                        # Human TeamMember: look up the corresponding User record
                         user = db.query(User).filter(User.email == team_member.email).first()
                         if user:
                             notification_user_id = user.id
-                except:
+                    elif not team_member:
+                        # assigned_to might be a direct User UUID
+                        try:
+                            candidate_id = UUID(assigned_to)
+                            exists = db.query(User).filter(User.id == candidate_id).first()
+                            if exists:
+                                notification_user_id = candidate_id
+                        except (ValueError, AttributeError):
+                            pass
+                except Exception:
                     pass
-
-                # If we couldn't find a user, try using the assigned_to directly
-                if not notification_user_id:
-                    try:
-                        notification_user_id = UUID(assigned_to)
-                    except:
-                        pass
 
                 if notification_user_id:
                     self.notification_service.create_assignment_notification(
@@ -258,8 +273,6 @@ class RequirementService:
                         assigned_by_name=changed_by_name,
                         previous_assignee=UUID(previous_assignee) if previous_assignee else None
                     )
-                else:
-                    print(f"Could not find user for assignment: {assigned_to}")
         except Exception as e:
             # Don't fail the transition if notification fails
             print(f"Error sending assignment notification: {e}")
@@ -268,6 +281,155 @@ class RequirementService:
             "success": True,
             "requirement_id": str(requirement_id)
         }
+
+    async def _dispatch_to_assigned_agent(
+        self,
+        db: Session,
+        requirement: Requirement,
+        to_status: str
+    ) -> None:
+        """
+        If the requirement is assigned to an AI TeamMember that has a linked
+        RemoteAgent (via deepagent_config.remoteAgentId), call that agent's
+        chat endpoint and post its reply as an AI comment on the card.
+        """
+        try:
+            if not requirement.assigned_to:
+                print(f"[RequirementService] No assignee for requirement {requirement.id}")
+                return
+
+            from ..models.team_member import TeamMember
+            from ..models.remote_agent import RemoteAgent
+            from ..models.comment import Comment
+            from uuid import UUID
+
+            # Check if assigned_to is an AI TeamMember
+            team_member = db.query(TeamMember).filter(
+                TeamMember.id == requirement.assigned_to,
+                TeamMember.type == "ai"
+            ).first()
+
+            if not team_member:
+                return  # Not an AI agent
+
+            deepagent_config = team_member.deepagent_config or {}
+            remote_agent_id = deepagent_config.get("remoteAgentId") or deepagent_config.get("remote_agent_id")
+
+            if not remote_agent_id:
+                print(f"[RequirementService] AI TeamMember {team_member.nickname} has no remote agent config")
+                return  # No remote agent linked
+
+            remote_agent = db.query(RemoteAgent).filter(
+                RemoteAgent.id == remote_agent_id,
+                RemoteAgent.archived_at.is_(None)
+            ).first()
+
+            if not remote_agent:
+                print(f"[RequirementService] Remote agent {remote_agent_id} not found in DB")
+                return
+
+            if remote_agent.status != "online":
+                print(f"[RequirementService] Remote agent {remote_agent.name} is offline (status: {remote_agent.status})")
+                return
+
+            # Build a task message for the agent
+            message = (
+                f"You have been assigned a requirement that was just moved to '{to_status}'.\n\n"
+                f"**Requirement**: {requirement.title}\n\n"
+                f"**Description**: {requirement.description or 'No description provided.'}\n\n"
+                f"Please analyze this requirement and provide your response or action plan."
+            )
+
+            print(f"[RequirementService] Dispatching task to agent {remote_agent.name} at {remote_agent.endpoint_url}")
+
+            # Call the remote agent's chat endpoint
+            import httpx
+            timeout = httpx.Timeout(120.0, connect=5.0)
+            headers = {"Content-Type": "application/json"}
+            if remote_agent.api_key:
+                headers["Authorization"] = f"Bearer {remote_agent.api_key}"
+
+            agent_reply = None
+            if remote_agent.agent_type == "hermes":
+                chat_url = f"{remote_agent.endpoint_url.rstrip('/')}/v1/chat/completions"
+                # Use a unique session ID for each automated move to avoid history pollution
+                import time
+                headers["X-Hermes-Session-Id"] = f"move_{requirement.id}_{int(time.time())}"
+
+                # Skills are managed by skill_manager (hub-installed in Hermes).
+                # Inject hub skill metadata so the model knows which skills are available.
+                from app.services.skills_proxy_service import get_skill_catalog_service
+                catalog = get_skill_catalog_service()
+                hub_msg = catalog.build_hub_skills_message(remote_agent.capabilities or [])
+
+                messages = []
+                if hub_msg:
+                    messages.append(hub_msg)
+                messages.append({"role": "user", "content": message})
+
+                payload = {
+                    "model": "hermes-agent",
+                    "messages": messages,
+                }
+                
+                async with httpx.AsyncClient(timeout=timeout, http2=False) as client:
+                    resp = await client.post(chat_url, headers=headers, json=payload)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    if data.get("choices") and len(data["choices"]) > 0:
+                        choice = data["choices"][0]
+                        if choice.get("message"):
+                            agent_reply = choice["message"].get("content")
+                        elif choice.get("text"):
+                            agent_reply = choice.get("text")
+            else:
+                chat_url = f"{remote_agent.endpoint_url.rstrip('/')}/chat"
+                payload = {"message": message, "thread_id": str(requirement.id)}
+                async with httpx.AsyncClient(timeout=timeout, http2=False) as client:
+                    resp = await client.post(chat_url, headers=headers, json=payload)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    agent_reply = data.get("response") or data.get("message")
+
+            # Post agent reply as AI comment
+            if agent_reply:
+                print(f"[RequirementService] Received reply from agent, posting comment...")
+                from .comment_service import CommentService
+                comment_service = CommentService()
+                comment_service.create_comment(
+                    db,
+                    requirement.id,
+                    {
+                        "content": agent_reply,
+                        "author_name": team_member.nickname or team_member.name,
+                        "is_ai": True,
+                    }
+                )
+                print(f"[RequirementService] Comment posted successfully.")
+            else:
+                print(f"[RequirementService] Agent returned empty reply.")
+
+        except Exception as e:
+            # Never fail the transition because of agent dispatch errors
+            print(f"[RequirementService] Agent dispatch error: {str(e)}")
+
+    async def _dispatch_to_assigned_agent_background(
+        self,
+        requirement_id: UUID,
+        to_status: str
+    ):
+        """
+        Background-safe version of _dispatch_to_assigned_agent that creates its own session.
+        """
+        from app.core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            requirement = self.req_repo.get(db, requirement_id)
+            if not requirement:
+                return
+            await self._dispatch_to_assigned_agent(db, requirement, to_status)
+        finally:
+            db.close()
 
     async def _execute_lane_agent(
         self,

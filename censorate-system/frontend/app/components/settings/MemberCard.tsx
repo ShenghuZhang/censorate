@@ -30,7 +30,7 @@ export default function MemberCard({ member, onRemove }: MemberCardProps) {
             {isAI(member) ? (
               <Brain size={24} />
             ) : (
-              (member.name || member.nickname).charAt(0).toUpperCase()
+              ((member.name || member.nickname) || '?').charAt(0).toUpperCase()
             )}
           </div>
 
@@ -54,7 +54,7 @@ export default function MemberCard({ member, onRemove }: MemberCardProps) {
                 {isAI(member) ? 'AI Agent' : 'Human'}
               </span>
               <span className="text-sm text-text-muted">
-                {member.role.replace('_', ' ')}
+                {(member.role || '').replace('_', ' ')}
               </span>
             </div>
 

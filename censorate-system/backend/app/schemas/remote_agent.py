@@ -115,3 +115,32 @@ class AgentThresholdUpdate(BaseModel):
     alert_after_offline_minutes: Optional[int] = Field(None, ge=1, le=1440)
     warning_latency_ms: Optional[int] = Field(None, ge=100, le=30000)
     critical_latency_ms: Optional[int] = Field(None, ge=100, le=30000)
+
+
+# ===== Agent Skill Hub Schemas =====
+
+class AgentSkillFileInfo(BaseModel):
+    """File info within a skill manifest (agent-facing)."""
+    path: str
+    content_type: str
+    file_size: int
+    sha256_hash: Optional[str] = None
+
+
+class AgentSkillManifest(BaseModel):
+    """Skill manifest returned to authenticated agents for self-management."""
+    slug: str
+    name: str
+    description: Optional[str] = None
+    category: str
+    version: str
+    manifest: Dict[str, Any] = Field(default_factory=dict)
+    files: List[AgentSkillFileInfo] = Field(default_factory=list)
+    download_url: Optional[str] = None
+    published_at: Optional[datetime] = None
+
+
+class AgentSkillListResponse(BaseModel):
+    """Response for listing skills available to an agent."""
+    count: int
+    skills: List[AgentSkillManifest]

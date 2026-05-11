@@ -20,10 +20,13 @@ class StorageService:
 
     def __init__(self):
         """Initialize storage service."""
+        from app.core.minio_client import minio_client
         self.settings = Settings.get()
         self.base_dir = Path(self.settings.SKILL_STORAGE_DIR)
         self._ensure_base_dir()
         self.storage_backend = getattr(self.settings, 'STORAGE_BACKEND', 'local')
+        self.minio = minio_client
+        self.bucket = getattr(self.settings, 'MINIO_SKILLS_BUCKET_NAME', 'censorate-skills')
         print(f"📦 Storage backend: {self.storage_backend}")
 
     def _ensure_base_dir(self) -> None:
@@ -38,14 +41,7 @@ class StorageService:
         self,
         files: List[Dict[str, Any]]
     ) -> Tuple[bool, List[str]]:
-        """Validate uploaded files.
-
-        Args:
-            files: List of {path, content, filename} dicts
-
-        Returns:
-            Tuple of (is_valid, list_of_errors)
-        """
+        """Validate uploaded files."""
         errors = []
         total_size = 0
 
@@ -61,23 +57,19 @@ class StorageService:
             path = file.get("path", "")
             content = file.get("content", b"")
 
-            # Validate path
             if not path:
                 errors.append("File path cannot be empty")
                 continue
 
-            # Path traversal check
             if ".." in path or path.startswith("/") or path.startswith("\\"):
                 errors.append(f"Invalid file path: {path}")
                 continue
 
-            # Check file extension
             ext = Path(path).suffix.lower()
             if ext not in self.settings.ALLOWED_EXTENSIONS:
                 errors.append(f"Disallowed file type: {path}")
                 continue
 
-            # Check file size
             file_size = len(content)
             if file_size > self.settings.MAX_FILE_SIZE:
                 errors.append(
@@ -87,7 +79,6 @@ class StorageService:
 
             total_size += file_size
 
-        # Check total size
         if total_size > self.settings.MAX_TOTAL_SIZE:
             errors.append(
                 f"Total file size too large: {total_size} bytes > {self.settings.MAX_TOTAL_SIZE} bytes"
@@ -176,29 +167,26 @@ class StorageService:
         for file in files:
             path = file.get("path", "")
             content = file.get("content", b"")
-
-            # Clean path
             clean_path = Path(path).as_posix()
 
-            # Create file on disk
-            file_path = version_dir / clean_path
+            # Create safe file path
+            file_path = version_dir / Path(clean_path).name
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(file_path, "wb") as f:
-                f.write(content)
+            # Write file
+            file_path.write_bytes(content)
 
             # Compute hash
             sha256_hash = self.compute_sha256(content)
 
-            # Determine content type
-            content_type = self._get_content_type(clean_path)
-
+            # Store relative path
+            storage_path = str(file_path.relative_to(self.base_dir.parent))
             saved_files.append({
                 "path": clean_path,
-                "storage_path": str(file_path.relative_to(self.base_dir.parent)),
+                "storage_path": storage_path,
                 "sha256_hash": sha256_hash,
                 "file_size": len(content),
-                "content_type": content_type
+                "content_type": self._get_content_type(clean_path)
             })
 
         print(f"💾 Saved {len(saved_files)} files to local storage for skill {skill_slug}")
@@ -216,10 +204,18 @@ class StorageService:
             return minio_client.get_skill_file(object_name)
 
         # Fall back to local storage
-        file_path = self.get_file_path(storage_path)
-        if file_path.exists():
-            with open(file_path, "rb") as f:
-                return f.read()
+        try:
+            # Normalize path: replace backslashes and remove 'skills/' prefix if it exists
+            normalized_path = storage_path.replace("\\", "/")
+            if normalized_path.startswith("skills/"):
+                normalized_path = normalized_path[len("skills/"):]
+
+            file_path = self.get_file_path(normalized_path)
+            if file_path.exists():
+                with open(file_path, "rb") as f:
+                    return f.read()
+        except Exception as e:
+            print(f"Error reading file: {e}")
         return None
 
     def delete_file(self, storage_path: str) -> bool:
@@ -248,31 +244,16 @@ class StorageService:
                 shutil.rmtree(skill_dir)
 
     def extract_zip(self, zip_content: bytes) -> List[Dict[str, Any]]:
-        """Extract files from a ZIP archive.
-
-        Args:
-            zip_content: ZIP file content as bytes
-
-        Returns:
-            List of {path, content} dicts
-        """
+        """Extract files from a ZIP archive."""
         files = []
         with zipfile.ZipFile(BytesIO(zip_content), 'r') as zf:
             for member in zf.infolist():
-                # Skip directories and __MACOSX, .DS_Store, etc.
                 if member.is_dir() or '/__MACOSX/' in member.filename or member.filename.startswith('__MACOSX/'):
                     continue
                 if '.DS_Store' in member.filename:
                     continue
 
-                # Clean path - remove leading directory if all files are in one folder
                 path = member.filename
-                if '/' in path:
-                    parts = path.split('/')
-                    # Check if all files are in the same root directory
-                    # For now, just keep the full path
-                    pass
-
                 content = zf.read(member)
                 files.append({
                     "path": path,

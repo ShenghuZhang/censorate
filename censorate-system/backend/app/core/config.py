@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     SKILLS_DIR: str = "app/skills"
     SKILL_STORAGE_DIR: str = "app/storage/skills"
 
+    # Hermes data path (for skill_manager sync)
+    HERMES_DATA_PATH: str = "../hermes_data"
+
     # Encryption (for API keys)
     ENCRYPTION_KEY: str = ""
 
@@ -98,7 +101,8 @@ class Settings(BaseSettings):
 
     model_config = {
         "env_file": ".env",
-        "case_sensitive": True
+        "case_sensitive": True,
+        "extra": "ignore"
     }
 
     @classmethod

@@ -10,6 +10,7 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { clsx } from 'clsx';
 
 type AgentStatus = 'online' | 'offline' | 'error';
+type AgentType = 'hermes' | 'openclaw' | 'custom';
 
 const HealthStatusBadge = ({ status }: { status: AgentStatus }) => {
   const statusConfig = {
@@ -42,26 +43,46 @@ export default function AgentsPage() {
   const { currentProject } = useProjectStore();
   const { user } = useAuth();
   const [isSending, setIsSending] = useState(false);
-  const [registerForm, setRegisterForm] = useState({
+  const [availableSkills, setAvailableSkills] = useState<Array<{ id: string; name: string; description: string }>>([]);
+
+  const [registerForm, setRegisterForm] = useState<{
+    name: string;
+    agentType: AgentType;
+    endpointUrl: string;
+    healthCheckPath: string;
+    apiKey: string;
+    healthCheckInterval: number;
+    description: string;
+    selectedSkills: string[];
+  }>({
     name: '',
-    agentType: 'custom' as const,
+    agentType: 'custom',
     endpointUrl: '',
     healthCheckPath: '/health',
     apiKey: '',
     healthCheckInterval: 30,
     description: '',
-    capabilities: '' as string,
+    selectedSkills: [],
   });
 
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    agentType: AgentType;
+    endpointUrl: string;
+    healthCheckPath: string;
+    apiKey: string;
+    healthCheckInterval: number;
+    description: string;
+    selectedSkills: string[];
+  }>({
     name: '',
-    agentType: 'custom' as const,
+    agentType: 'custom',
     endpointUrl: '',
     healthCheckPath: '/health',
     apiKey: '',
     healthCheckInterval: 30,
     description: '',
-    capabilities: '',
+    selectedSkills: [],
   });
 
   const loadAgents = useCallback(async () => {
@@ -101,6 +122,28 @@ export default function AgentsPage() {
     return () => clearInterval(interval);
   }, [loadAgents]);
 
+  // Load available skills when Register dialog opens
+  const loadAvailableSkills = useCallback(async () => {
+    try {
+      const skills = await remoteAgentsAPI.listAvailableSkills();
+      setAvailableSkills(skills);
+    } catch (error) {
+      console.error('Failed to load available skills:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showRegister) {
+      loadAvailableSkills();
+    }
+  }, [showRegister, loadAvailableSkills]);
+
+  useEffect(() => {
+    if (showEdit) {
+      loadAvailableSkills();
+    }
+  }, [showEdit, loadAvailableSkills]);
+
   const handleCheckHealth = async (agentId: string) => {
     try {
       await remoteAgentsAPI.checkHealth(agentId);
@@ -114,18 +157,18 @@ export default function AgentsPage() {
     try {
       await remoteAgentsAPI.registerAgent({
         ...registerForm,
-        capabilities: registerForm.capabilities.split(',').map(s => s.trim()).filter(Boolean),
+        capabilities: registerForm.selectedSkills,
       });
       setShowRegister(false);
       setRegisterForm({
         name: '',
-        agentType: 'custom',
+        agentType: 'custom' as const,
         endpointUrl: '',
         healthCheckPath: '/health',
         apiKey: '',
         healthCheckInterval: 30,
         description: '',
-        capabilities: '',
+        selectedSkills: [],
       });
       await loadAgents();
     } catch (error) {
@@ -151,7 +194,7 @@ export default function AgentsPage() {
     try {
       await remoteAgentsAPI.updateAgent(showEdit.id, {
         ...editForm,
-        capabilities: editForm.capabilities.split(',').map(s => s.trim()).filter(Boolean),
+        capabilities: editForm.selectedSkills,
       });
       setShowEdit(null);
       await loadAgents();
@@ -161,34 +204,18 @@ export default function AgentsPage() {
     }
   };
 
-  // Helper to toggle skill selection
-  const toggleSkill = (
-    skillName: string,
-    currentCapabilities: string,
-    setForm: React.Dispatch<React.SetStateAction<any>>
-  ) => {
-    const caps = currentCapabilities.split(',').map(s => s.trim()).filter(Boolean);
-    const newCaps = caps.includes(skillName)
-      ? caps.filter(c => c !== skillName)
-      : [...caps, skillName];
-    setForm(prev => ({
-      ...prev,
-      capabilities: newCaps.join(', ')
-    }));
-  };
-
   // Populate edit form when showEdit changes
   useEffect(() => {
     if (showEdit) {
       setEditForm({
         name: showEdit.name || '',
-        agentType: showEdit.agentType || 'custom',
+        agentType: (showEdit.agentType as AgentType) || 'custom',
         endpointUrl: showEdit.endpointUrl || '',
         healthCheckPath: showEdit.healthCheckPath || '/health',
         apiKey: '', // Don't populate API key for security
         healthCheckInterval: showEdit.healthCheckInterval || 30,
         description: showEdit.description || '',
-        capabilities: (showEdit.capabilities || []).join(', '),
+        selectedSkills: showEdit.capabilities || [],
       });
     }
   }, [showEdit]);
@@ -277,7 +304,7 @@ export default function AgentsPage() {
           </div>
         ) : agents.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-10 text-center">
-            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-2">
               <Bot size={28} className="text-gray-400" />
             </div>
             <h3 className="text-base font-semibold text-gray-900 mb-2">
@@ -295,15 +322,15 @@ export default function AgentsPage() {
                 className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-sm">
-                      <Bot size={24} />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-sm">
+                      <Bot size={20} />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900">{agent.name}</h3>
                       <p className="text-xs text-gray-500">{agent.agentType}</p>
-                      <div className="mt-2">
-                        <HealthStatusBadge status={agent.status} />
+                      <div className="mt-1">
+                        <HealthStatusBadge status={agent.status as AgentStatus} />
                       </div>
                     </div>
                   </div>
@@ -398,7 +425,7 @@ export default function AgentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
                     <select
                       value={registerForm.agentType}
-                      onChange={(e) => setRegisterForm({ ...registerForm, agentType: e.target.value as any })}
+                      onChange={(e) => setRegisterForm({ ...registerForm, agentType: e.target.value as AgentType })}
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
                     >
                       <option value="hermes">Hermes</option>
@@ -466,47 +493,42 @@ export default function AgentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Capabilities</label>
-                  <div className="mb-2">
-                    <input
-                      type="text"
-                      value={registerForm.capabilities}
-                      onChange={(e) => setRegisterForm({ ...registerForm, capabilities: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                      placeholder="Or select from available skills below"
-                    />
-                  </div>
-                  {isLoadingSkills ? (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
-                      <div className="animate-spin w-4 h-4 border-2 border-gray-200 rounded-full border-t-blue-600" />
-                      Loading skills...
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Skills</label>
+                  {availableSkills.length === 0 ? (
+                    <p className="text-sm text-gray-400">Loading available skills...</p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 space-y-2">
+                      {availableSkills.map((skill) => (
+                        <label
+                          key={skill.id}
+                          className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={registerForm.selectedSkills.includes(skill.id)}
+                            onChange={(e) => {
+                              const next = e.target.checked
+                                ? [...registerForm.selectedSkills, skill.id]
+                                : registerForm.selectedSkills.filter((s) => s !== skill.id);
+                              setRegisterForm({ ...registerForm, selectedSkills: next });
+                            }}
+                            className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">{skill.name}</p>
+                            {skill.description && (
+                              <p className="text-xs text-gray-500">{skill.description}</p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
                     </div>
-                  ) : skills.length > 0 ? (
-                    <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
-                      <p className="text-xs text-gray-500 mb-2">Click to select skills:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {skills.map((skill) => {
-                          const isSelected = registerForm.capabilities.split(',').map(s => s.trim()).includes(skill.name);
-                          return (
-                            <button
-                              key={skill.id}
-                              type="button"
-                              onClick={() => toggleSkill(skill.name, registerForm.capabilities, setRegisterForm)}
-                              className={clsx(
-                                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all',
-                                isSelected
-                                  ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                                  : 'bg-white text-gray-600 hover:bg-gray-100 ring-1 ring-gray-200'
-                              )}
-                            >
-                              {isSelected ? <CheckCircle2 size={12} /> : <Brain size={12} />}
-                              {skill.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
+                  )}
+                  {registerForm.selectedSkills.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {registerForm.selectedSkills.length} skill(s) selected
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -551,7 +573,7 @@ export default function AgentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
                     <select
                       value={editForm.agentType}
-                      onChange={(e) => setEditForm({ ...editForm, agentType: e.target.value as any })}
+                      onChange={(e) => setEditForm({ ...editForm, agentType: e.target.value as AgentType })}
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
                     >
                       <option value="hermes">Hermes</option>
@@ -619,47 +641,42 @@ export default function AgentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Capabilities</label>
-                  <div className="mb-2">
-                    <input
-                      type="text"
-                      value={editForm.capabilities}
-                      onChange={(e) => setEditForm({ ...editForm, capabilities: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-                      placeholder="Or select from available skills below"
-                    />
-                  </div>
-                  {isLoadingSkills ? (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
-                      <div className="animate-spin w-4 h-4 border-2 border-gray-200 rounded-full border-t-blue-600" />
-                      Loading skills...
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Skills</label>
+                  {availableSkills.length === 0 ? (
+                    <p className="text-sm text-gray-400">Loading available skills...</p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 space-y-2">
+                      {availableSkills.map((skill) => (
+                        <label
+                          key={skill.id}
+                          className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={editForm.selectedSkills.includes(skill.id)}
+                            onChange={(e) => {
+                              const next = e.target.checked
+                                ? [...editForm.selectedSkills, skill.id]
+                                : editForm.selectedSkills.filter((s) => s !== skill.id);
+                              setEditForm({ ...editForm, selectedSkills: next });
+                            }}
+                            className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">{skill.name}</p>
+                            {skill.description && (
+                              <p className="text-xs text-gray-500">{skill.description}</p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
                     </div>
-                  ) : skills.length > 0 ? (
-                    <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
-                      <p className="text-xs text-gray-500 mb-2">Click to select skills:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {skills.map((skill) => {
-                          const isSelected = editForm.capabilities.split(',').map(s => s.trim()).includes(skill.name);
-                          return (
-                            <button
-                              key={skill.id}
-                              type="button"
-                              onClick={() => toggleSkill(skill.name, editForm.capabilities, setEditForm)}
-                              className={clsx(
-                                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all',
-                                isSelected
-                                  ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                                  : 'bg-white text-gray-600 hover:bg-gray-100 ring-1 ring-gray-200'
-                              )}
-                            >
-                              {isSelected ? <CheckCircle2 size={12} /> : <Brain size={12} />}
-                              {skill.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
+                  )}
+                  {editForm.selectedSkills.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {editForm.selectedSkills.length} skill(s) selected
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -694,30 +711,30 @@ export default function AgentsPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900">{showChat.name}</h3>
-                      <HealthStatusBadge status={showChat.status} />
+                      <HealthStatusBadge status={showChat.status as AgentStatus} />
                     </div>
                   </div>
-                <button
-                  onClick={() => setShowChat(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
+                  <button
+                    onClick={() => setShowChat(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {currentProject ? (
+                  <div className="mt-3 px-3 py-2 bg-blue-50 rounded-lg text-sm">
+                    <span className="text-blue-600 font-medium">Project:</span>
+                    <span className="text-blue-800 ml-2">{currentProject.name}</span>
+                    <span className="text-blue-400 ml-2 text-xs">(Session linked to project)</span>
+                  </div>
+                ) : user ? (
+                  <div className="mt-3 px-3 py-2 bg-purple-50 rounded-lg text-sm">
+                    <span className="text-purple-600 font-medium">User:</span>
+                    <span className="text-purple-800 ml-2">{user.name}</span>
+                    <span className="text-purple-400 ml-2 text-xs">(Session linked to user)</span>
+                  </div>
+                ) : null}
               </div>
-              {currentProject ? (
-                <div className="mt-3 px-3 py-2 bg-blue-50 rounded-lg text-sm">
-                  <span className="text-blue-600 font-medium">Project:</span>
-                  <span className="text-blue-800 ml-2">{currentProject.name}</span>
-                  <span className="text-blue-400 ml-2 text-xs">(Session linked to project)</span>
-                </div>
-              ) : user ? (
-                <div className="mt-3 px-3 py-2 bg-purple-50 rounded-lg text-sm">
-                  <span className="text-purple-600 font-medium">User:</span>
-                  <span className="text-purple-800 ml-2">{user.name}</span>
-                  <span className="text-purple-400 ml-2 text-xs">(Session linked to user)</span>
-                </div>
-              ) : null}
-            </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {chatMessages.length === 0 ? (

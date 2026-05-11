@@ -231,6 +231,14 @@ Copy `.env.example` to `.env` and configure:
 - API keys (Claude, OpenAI, Lark, DeepAgents)
 - JWT secret
 
+### Hermes
+
+- Use a single runtime directory: `./hermes_data`
+- Keep non-secret Hermes settings in `hermes_data/config.yaml`
+- Keep `API_SERVER_KEY` and provider keys in `hermes_data/.env` or host env vars
+- Do not commit `hermes_data/auth.json`, `state.db`, logs, or `.env`
+- See `docs/hermes-configuration.md` for the recommended layout
+
 ## Docker
 
 The system can be run using Docker Compose:
