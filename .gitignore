@@ -11,3 +11,44 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Environment files (keep local)
+.env
+*.env.local
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+
+# PID files
+*.pid
+
+# Uploads and storage
+censorate-system/backend/uploads/
+censorate-system/backend/app/storage/
+
+# Test artifacts
+test-results/
+playwright-report/
+.agents/
+.playwright-mcp/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# Skills temp files
+skills-lock.json
+skills/
+
+# Screenshots
+screenshots/
+
+# MCP config
+.mcp.json
+
+# Frontend gitignore (duplicate)
+censorate-system/frontend/.gitignore

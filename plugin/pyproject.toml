@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "censorate-hermes-plugin"
+version = "0.1.0"
+description = "Censorate integration plugin for Hermes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "Censorate Team" }
+]
+keywords = [
+  "hermes",
+  "plugin",
+  "censorate",
+  "ai",
+  "skills"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "requests>=2.31.0",
+  "python-dotenv>=1.0.0"
+]
+
+[project.scripts]
+censorate = "censorate_hermes_plugin.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/censorate-hermes-plugin"
+Documentation = "https://github.com/your-org/censorate-hermes-plugin#readme"
+Issues = "https://github.com/your-org/censorate-hermes-plugin/issues"
+Source = "https://github.com/your-org/censorate-hermes-plugin"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+]
