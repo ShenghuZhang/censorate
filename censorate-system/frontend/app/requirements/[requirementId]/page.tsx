@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Requirement, useRequirementStore } from '@/app/stores/requirementStore';
+import { useProjectStore } from '@/app/stores/projectStore';
 import { requirementsAPI } from '@/lib/api/requirements';
 import RequirementDetail from '@/app/components/requirement/RequirementDetail';
 
@@ -14,6 +15,7 @@ export default function RequirementPage() {
   const [error, setError] = useState<string | null>(null);
 
   const { fetchComments, fetchHistory, selectedRequirement, setSelectedRequirement } = useRequirementStore();
+  const { currentProject } = useProjectStore();
   const requirement = selectedRequirement;
 
   useEffect(() => {
@@ -40,7 +42,15 @@ export default function RequirementPage() {
   }, [params.requirementId, fetchComments, fetchHistory, setSelectedRequirement]);
 
   const handleBack = () => {
-    router.back();
+    // Navigate to project kanban page - check both camelCase and snake_case
+    const req = requirement as any;
+    const projectId = req?.projectId || req?.project_id || currentProject?.id;
+    console.log('Back button - requirement:', requirement, 'projectId:', projectId, 'currentProject:', currentProject);
+    if (projectId) {
+      router.push(`/kanban?project_id=${projectId}`);
+    } else {
+      router.push('/projects');
+    }
   };
 
   if (isLoading) {

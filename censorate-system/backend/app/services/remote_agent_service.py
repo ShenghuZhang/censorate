@@ -52,7 +52,11 @@ class RemoteAgentService:
         Returns:
             Tuple of (status: str, response_time_ms: int | None, error_message: str | None)
         """
-        health_url = f"{agent.endpoint_url.rstrip('/')}{agent.health_check_path}"
+        endpoint = agent.endpoint_url.rstrip('/')
+        # Ensure URL has protocol
+        if not endpoint.startswith(('http://', 'https://')):
+            endpoint = f'http://{endpoint}'
+        health_url = f"{endpoint}{agent.health_check_path}"
         start_time = datetime.now(timezone.utc)
 
         try:

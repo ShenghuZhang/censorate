@@ -26,16 +26,120 @@ from pathlib import Path
 router = APIRouter()
 
 
-def _trigger_skill_sync(api_key: str, hermes_data_path: str, censorate_url: str):
-    """Run skill_manager sync in a background thread after capabilities change.
+def _trigger_skill_sync_via_webhook(agent: RemoteAgent, censorate_url: str, db: Session):
+    """Trigger skill sync via webhook if skill_manager_url is configured.
 
-    Sync writes skill files to Hermes' data directory. Hermes loads skills
-    from the filesystem on each new session start, so changes take effect
-    on the next session without interrupting any running session.
+    This sends complete skills data to the skill-manager sidecar.
+    Falls back to in-process sync if webhook isn't configured.
     """
+    skill_manager_url = agent.config.get("skill_manager_url") if agent.config else None
+
+    if skill_manager_url:
+        # Use webhook for real-time sync with sidecar
+        def _send_webhook():
+            try:
+                import httpx
+                from app.models.skill import Skill
+                from app.services import get_skill_service
+
+                webhook_url = f"{skill_manager_url.rstrip('/')}/webhook/agent-updated"
+                print(f"[SkillManager] Sending webhook to {webhook_url}")
+
+                # Get skill service
+                skill_service = get_skill_service()
+
+                # Get all skills for this agent
+                capabilities = agent.capabilities or []
+                skills = db.query(Skill).filter(
+                    Skill.slug.in_(capabilities),
+                    Skill.is_published == True,
+                    Skill.is_archived == False
+                ).all()
+
+                # Build skills data
+                skills_data = []
+                for skill in skills:
+                    version = None
+                    if skill.latest_version_id:
+                        version = skill_service.version_repo.get(db, skill.latest_version_id)
+
+                    if version:
+                        files = skill_service.get_files_for_version(db, version.id)
+                        file_infos = []
+                        for f in files:
+                            try:
+                                content = skill_service.get_file_content(db, version.id, f.path)
+                                content_str = content.decode("utf-8", errors="ignore") if content else None
+                            except Exception:
+                                content_str = None
+                            file_infos.append({
+                                "path": f.path,
+                                "content_type": f.content_type,
+                                "file_size": f.file_size,
+                                "content": content_str
+                            })
+
+                        skills_data.append({
+                            "slug": skill.slug,
+                            "name": skill.name,
+                            "description": skill.description,
+                            "category": skill.category,
+                            "version": version.version,
+                            "manifest": version.manifest or {},
+                            "files": file_infos
+                        })
+
+                # Send complete data to skill-manager
+                httpx.post(
+                    webhook_url,
+                    json={
+                        "agent_id": str(agent.id),
+                        "agent_name": agent.name,
+                        "event_type": "capabilities_updated",
+                        "capabilities": capabilities,
+                        "skills": skills_data
+                    },
+                    timeout=30.0
+                )
+                print(f"[SkillManager] Webhook sent successfully with {len(skills_data)} skills")
+            except Exception as e:
+                print(f"[SkillManager] Webhook failed: {e}")
+                import traceback
+                traceback.print_exc()
+
+        threading.Thread(target=_send_webhook, daemon=True).start()
+    else:
+        # Fall back to in-process sync (legacy behavior)
+        from app.core.config import Settings
+        settings = Settings.get()
+        hermes_data_path = settings.HERMES_DATA_PATH or "./hermes_data"
+        if agent.api_key:
+            _trigger_skill_sync_in_process(agent.api_key, hermes_data_path, censorate_url)
+
+
+def _trigger_skill_sync_in_process(api_key: str, hermes_data_path: str, censorate_url: str):
+    """Run skill_manager sync in a background thread (legacy mode)."""
     def _run():
         try:
-            from scripts.skill_manager import SkillManager
+            import importlib.util
+            import sys
+            from pathlib import Path
+
+            # Try to import from daemon directory first, fall back to scripts
+            daemon_script = Path(__file__).parent.parent.parent.parent / "daemon" / "skill_manager.py"
+            if daemon_script.exists():
+                spec = importlib.util.spec_from_file_location("skill_manager", daemon_script)
+                skill_manager = importlib.util.module_from_spec(spec)
+                sys.modules["skill_manager"] = skill_manager
+                spec.loader.exec_module(skill_manager)
+                SkillManager = skill_manager.SkillManager
+            else:
+                # Fall back to scripts directory (for backwards compatibility)
+                try:
+                    from scripts.skill_manager import SkillManager
+                except ImportError:
+                    print("[SkillManager] skill_manager.py not found, skipping sync")
+                    return
 
             manager = SkillManager(
                 censorate_url=censorate_url,
@@ -59,6 +163,8 @@ def _trigger_skill_sync(api_key: str, hermes_data_path: str, censorate_url: str)
                           "Hermes will pick up changes on next session start.")
         except Exception as e:
             print(f"[SkillManager] Background sync failed: {e}")
+            import traceback
+            traceback.print_exc()
 
     threading.Thread(target=_run, daemon=True).start()
 
@@ -100,17 +206,43 @@ def register_remote_agent(
             detail=f"Remote agent with name '{data.name}' already exists"
         )
 
-    agent = RemoteAgent(**data.model_dump())
-    db.add(agent)
-    db.commit()
-    db.refresh(agent)
+    try:
+        agent_data = data.model_dump()
+        # Extract api_key if present
+        api_key = agent_data.pop('api_key', None)
 
-    if agent.capabilities and agent.api_key:
+        # Auto-set skill_manager_url if config doesn't have it and env var is set
         from app.core.config import Settings
         settings = Settings.get()
-        base_url = str(request.base_url).rstrip("/")
-        censorate_url = f"{base_url}{settings.API_PREFIX}"
-        _trigger_skill_sync(agent.api_key, settings.HERMES_DATA_PATH, censorate_url)
+        if settings.SKILL_MANAGER_URL:
+            if not agent_data.get('config'):
+                agent_data['config'] = {}
+            if 'skill_manager_url' not in agent_data['config']:
+                agent_data['config']['skill_manager_url'] = settings.SKILL_MANAGER_URL
+
+        # Create agent without api_key first
+        agent = RemoteAgent(**agent_data)
+        # Set api_key separately if provided
+        if api_key is not None:
+            agent.api_key = api_key
+        db.add(agent)
+        db.commit()
+        db.refresh(agent)
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating agent: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create agent: {str(e)}"
+        )
+
+    if agent.capabilities and agent.api_key:
+        try:
+            base_url = str(request.base_url).rstrip("/")
+            censorate_url = f"{base_url}{settings.API_PREFIX}"
+            _trigger_skill_sync_via_webhook(agent, censorate_url, db)
+        except Exception as e:
+            print(f"Warning: Failed to trigger skill sync: {e}")
 
     return agent
 
@@ -371,6 +503,19 @@ def update_remote_agent(
 
     update_data = data.model_dump(exclude_unset=True)
 
+    # Auto-set skill_manager_url if config doesn't have it and env var is set
+    from app.core.config import Settings
+    settings = Settings.get()
+    if settings.SKILL_MANAGER_URL:
+        if "config" in update_data:
+            if not update_data["config"]:
+                update_data["config"] = {}
+            if 'skill_manager_url' not in update_data["config"]:
+                # Check existing agent config too
+                existing_config = agent.config or {}
+                if 'skill_manager_url' not in existing_config:
+                    update_data["config"]["skill_manager_url"] = settings.SKILL_MANAGER_URL
+
     # Detect capabilities change to trigger skill sync
     caps_changed = False
     if "capabilities" in update_data:
@@ -386,11 +531,9 @@ def update_remote_agent(
     db.refresh(agent)
 
     if caps_changed and agent.api_key:
-        from app.core.config import Settings
-        settings = Settings.get()
         base_url = str(request.base_url).rstrip("/")
         censorate_url = f"{base_url}{settings.API_PREFIX}"
-        _trigger_skill_sync(agent.api_key, settings.HERMES_DATA_PATH, censorate_url)
+        _trigger_skill_sync_via_webhook(agent, censorate_url, db)
 
     return agent
 
@@ -569,12 +712,23 @@ async def send_chat_message(
         if agent.api_key:
             headers["Authorization"] = f"Bearer {agent.api_key}"
 
+        # Ensure endpoint URL has protocol and no trailing slash
+        endpoint = agent.endpoint_url.strip()
+        if not endpoint.startswith(('http://', 'https://')):
+            endpoint = f'http://{endpoint}'
+        endpoint = endpoint.rstrip('/')
+
+        print(f"[DEBUG] Agent endpoint: {agent.endpoint_url}")
+        print(f"[DEBUG] Normalized endpoint: {endpoint}")
+        print(f"[DEBUG] Agent type: {agent.agent_type}")
+
         # Use fresh client with HTTP/2 disabled for better compatibility
         async with httpx.AsyncClient(timeout=timeout, http2=False) as client:
             # Check agent type to determine chat endpoint format
             if agent.agent_type == "hermes":
                 # Hermes agent uses OpenAI compatible format
-                chat_url = f"{agent.endpoint_url.rstrip('/')}/v1/chat/completions"
+                chat_url = f"{endpoint}/v1/chat/completions"
+                print(f"[DEBUG] Using Hermes format, chat_url: {chat_url}")
 
                 # Use project_id as X-Hermes-Session-Id for continuity, fallback to thread_id
                 session_id = request.project_id or request.thread_id
@@ -619,7 +773,8 @@ async def send_chat_message(
 
             else:
                 # Custom agent format
-                chat_url = f"{agent.endpoint_url.rstrip('/')}/chat"
+                chat_url = f"{endpoint}/chat"
+                print(f"[DEBUG] Using custom format, chat_url: {chat_url}")
 
                 response = await client.post(
                     chat_url,
@@ -645,20 +800,29 @@ async def send_chat_message(
             )
     except httpx.HTTPStatusError as e:
         error_detail = f"Agent returned error: {e.response.status_code}"
+        if 'chat_url' in locals():
+            error_detail += f" (URL: {chat_url})"
         try:
             error_data = e.response.json()
             if error_data.get("error"):
                 error_detail += f" - {error_data['error'].get('message', str(error_data['error']))}"
         except:
             pass
+        print(f"[DEBUG] HTTP error: {error_detail}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_detail
         )
     except Exception as e:
+        import traceback
+        error_msg = f"Failed to communicate with agent: {str(e)}"
+        if 'chat_url' in locals():
+            error_msg += f" (URL: {chat_url})"
+        print(f"[ERROR] Chat request failed: {e}")
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to communicate with agent: {str(e)}"
+            detail=error_msg
         )
 
 

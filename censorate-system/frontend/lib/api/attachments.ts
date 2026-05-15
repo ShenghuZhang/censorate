@@ -25,7 +25,7 @@ export const attachmentsApi = {
 
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8216/api/v1';
     const response = await fetch(
-      `${API_BASE_URL}/requirements/${requirementId}/attachments`,
+      `${API_BASE_URL}/requirements/${requirementId}/upload-attachment`,
       {
         method: 'POST',
         body: formData,

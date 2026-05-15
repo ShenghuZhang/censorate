@@ -153,6 +153,13 @@ start_frontend() {
     echo -e "${GREEN}前端服务已启动 (PID: ${FRONTEND_PID})${NC}"
 }
 
+# 启动 skill-manager daemon（如果配置了）
+start_daemon_if_configured() {
+    # 总是启动 skill-manager（现在不需要 API key 了）
+    echo -e "${GREEN}正在启动 Skill-Manager Daemon...${NC}"
+    start_daemon
+}
+
 # 检查服务是否成功启动
 check_services() {
     echo -e "\n${GREEN}正在检查服务启动状态...${NC}"
@@ -176,6 +183,13 @@ check_services() {
         return 1
     fi
 
+    # 检查 skill-manager
+    if curl -f http://localhost:${SKILL_MANAGER_PORT:-8765}/health >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Skill-Manager Daemon 已成功启动${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Skill-Manager Daemon 可能未完全启动，请稍后检查${NC}"
+    fi
+
     return 0
 }
 
@@ -189,6 +203,9 @@ display_info() {
     echo "   - 前端应用: http://localhost:3000"
     echo "   - 后端 API: http://localhost:8216"
     echo "   - API 文档: http://localhost:8216/docs"
+
+    # 显示 skill-manager 信息
+    echo "   - Skill-Manager: http://localhost:${SKILL_MANAGER_PORT:-8765}"
     echo ""
     echo -e "${YELLOW}🚀 核心功能:${NC}"
     echo "   - 看板视图: 需求的可视化管理"
@@ -200,6 +217,8 @@ display_info() {
     echo "   - 停止服务: ./run.sh stop"
     echo "   - 重启服务: ./run.sh restart"
     echo "   - 查看状态: ./run.sh status"
+    echo "   - 单独启动 Skill-Manager: ./run.sh start-daemon"
+    echo "   - 单独停止 Skill-Manager: ./run.sh stop-daemon"
 }
 
 # 停止服务
@@ -228,6 +247,9 @@ stop_services() {
         rm -f frontend/frontend.pid
     fi
 
+    # 停止 skill-manager daemon
+    stop_daemon
+
     # 停止所有相关的 Python 和 Node 进程
     pkill -f "python.*main.py" 2>/dev/null
     pkill -f "npm.*dev" 2>/dev/null
@@ -249,6 +271,119 @@ check_status() {
         echo -e "${GREEN}✅ 前端服务运行正常${NC}"
     else
         echo -e "${RED}❌ 前端服务未运行${NC}"
+    fi
+}
+
+# 初始化 mock 数据
+init_mock_data() {
+    echo -e "${GREEN}=============================================${NC}"
+    echo -e "${GREEN}    初始化 Mock 数据${NC}"
+    echo -e "${GREEN}=============================================${NC}"
+    echo ""
+
+    cd "${PROJECT_ROOT}/backend"
+
+    # 激活虚拟环境
+    if [ -d "venv" ]; then
+        source venv/bin/activate
+    fi
+
+    # 运行初始化脚本
+    echo -e "${YELLOW}正在创建 mock 数据...${NC}"
+    python scripts/init_mock_data.py
+
+    if [ $? -eq 0 ]; then
+        echo -e "\n${GREEN}✅ Mock 数据初始化成功！${NC}"
+    else
+        echo -e "\n${RED}❌ Mock 数据初始化失败${NC}"
+        exit 1
+    fi
+}
+
+# 启动 skill-manager daemon
+start_daemon() {
+    echo -e "${GREEN}=============================================${NC}"
+    echo -e "${GREEN}    启动 Skill Manager Daemon${NC}"
+    echo -e "${GREEN}=============================================${NC}"
+    echo ""
+
+    cd "${PROJECT_ROOT}/daemon"
+
+    # 创建虚拟环境（如果不存在）
+    if [ ! -d "venv" ]; then
+        echo -e "${YELLOW}正在创建 daemon 虚拟环境...${NC}"
+        python3 -m venv venv
+    fi
+
+    # 激活虚拟环境
+    source venv/bin/activate
+
+    # 安装依赖
+    echo -e "${YELLOW}正在安装 daemon 依赖...${NC}"
+    pip install -r requirements.txt
+
+    # 加载 env 文件（用于配置端口等）
+    if [ -f "${SCRIPT_DIR}/.env" ]; then
+        export $(grep -v '^#' "${SCRIPT_DIR}/.env" | xargs)
+    fi
+
+    # 确保 ~/.hermes 目录存在
+    mkdir -p ~/.hermes
+
+    # 启动 daemon（仅 server 模式 - webhook 驱动）
+    echo -e "${GREEN}正在启动 skill-manager daemon...${NC}"
+    echo -e "${YELLOW}  - Mode: server (webhook-driven)${NC}"
+    echo -e "${YELLOW}  - Port: ${SKILL_MANAGER_PORT:-8765}${NC}"
+    echo -e "${YELLOW}  - Hermes data dir: ~/.hermes${NC}"
+    echo ""
+
+    python skill_manager.py --server --hermes-data "$HOME/.hermes" &
+    DAEMON_PID=$!
+    echo $DAEMON_PID > "${PROJECT_ROOT}/daemon.pid"
+
+    echo -e "${GREEN}✅ Skill Manager Daemon 已启动 (PID: ${DAEMON_PID})${NC}"
+    echo -e "${YELLOW}查看日志: ${PROJECT_ROOT}/daemon/daemon.log${NC}"
+}
+
+# 停止 skill-manager daemon
+stop_daemon() {
+    echo -e "${GREEN}正在停止 Skill Manager Daemon...${NC}"
+
+    cd "${PROJECT_ROOT}"
+
+    if [ -f "daemon.pid" ]; then
+        DAEMON_PID=$(cat daemon.pid)
+        if kill -0 $DAEMON_PID 2>/dev/null; then
+            kill $DAEMON_PID
+            echo -e "${GREEN}✅ Skill Manager Daemon 已停止${NC}"
+        fi
+        rm -f daemon.pid
+    else
+        # Try to find and kill any running skill_manager processes
+        pkill -f "python.*skill_manager.py" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✅ Skill Manager Daemon 已停止${NC}"
+        fi
+    fi
+}
+
+# 检查 daemon 状态
+check_daemon_status() {
+    echo -e "${GREEN}检查 Skill Manager Daemon 状态:${NC}"
+
+    if [ -f "${PROJECT_ROOT}/daemon.pid" ]; then
+        DAEMON_PID=$(cat "${PROJECT_ROOT}/daemon.pid")
+        if kill -0 $DAEMON_PID 2>/dev/null; then
+            echo -e "${GREEN}✅ Skill Manager Daemon 正在运行 (PID: ${DAEMON_PID})${NC}"
+            # Check health endpoint
+            if curl -f "http://localhost:${SKILL_MANAGER_PORT:-8765}/health" >/dev/null 2>&1; then
+                echo -e "${GREEN}✅ HTTP 服务响应正常${NC}"
+            fi
+        else
+            echo -e "${RED}❌ Skill Manager Daemon PID 文件存在但进程未运行${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️ Skill Manager Daemon 未运行${NC}"
     fi
 }
 
@@ -275,6 +410,7 @@ main() {
             # 启动服务
             start_backend
             start_frontend
+            start_daemon_if_configured
 
             # 检查服务状态
             if check_services; then
@@ -294,6 +430,7 @@ main() {
 
         "status")
             check_status
+            check_daemon_status
             ;;
 
         "setup")
@@ -309,15 +446,43 @@ main() {
             echo -e "${GREEN}✅ 项目环境配置完成${NC}"
             ;;
 
+        "init")
+            check_node_version
+            check_python_version
+
+            # 先确保环境配置好
+            setup_python_env
+            setup_frontend
+
+            # 初始化 mock 数据
+            init_mock_data
+            ;;
+
+        "start-daemon")
+            start_daemon
+            ;;
+
+        "stop-daemon")
+            stop_daemon
+            ;;
+
+        "daemon-status")
+            check_daemon_status
+            ;;
+
         *)
-            echo "Usage: $0 {start|stop|restart|status|setup}"
+            echo "Usage: $0 {start|stop|restart|status|setup|init|start-daemon|stop-daemon|daemon-status}"
             echo ""
             echo "Commands:"
-            echo "  start    - 启动所有服务"
-            echo "  stop     - 停止所有服务"
-            echo "  restart  - 重启所有服务"
-            echo "  status   - 检查服务状态"
-            echo "  setup    - 配置项目环境"
+            echo "  start         - 启动所有服务"
+            echo "  stop          - 停止所有服务"
+            echo "  restart       - 重启所有服务"
+            echo "  status        - 检查服务状态"
+            echo "  setup         - 配置项目环境"
+            echo "  init          - 初始化 mock 数据（项目、skills、成员等）"
+            echo "  start-daemon  - 启动 skill-manager daemon"
+            echo "  stop-daemon   - 停止 skill-manager daemon"
+            echo "  daemon-status - 检查 skill-manager 状态"
             ;;
     esac
 }

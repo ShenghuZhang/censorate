@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     # Hermes data path (for skill_manager sync)
     HERMES_DATA_PATH: str = "../hermes_data"
 
+    # Default skill-manager URL for webhook (used in Docker)
+    SKILL_MANAGER_URL: str | None = None
+
     # Encryption (for API keys)
     ENCRYPTION_KEY: str = ""
 
@@ -77,7 +80,7 @@ class Settings(BaseSettings):
     # Skill upload limits
     MAX_FILE_SIZE: int = 1024 * 1024  # 1MB per file
     MAX_TOTAL_SIZE: int = 10 * 1024 * 1024  # 10MB total
-    ALLOWED_EXTENSIONS: list = [".md", ".json", ".yaml", ".yml", ".txt", ".py", ".zip"]
+    ALLOWED_EXTENSIONS: list = [".md", ".json", ".yaml", ".yml", ".txt", ".py", ".zip", ".js", ".ts", ".tsx", ".jsx", ".sh", ".bash", ".zsh", ".css", ".html", ".xml", ".csv", ".ini", ".cfg", ".conf", ".toml", ".env", ".env.example", ".gitignore", ".dockerignore", ".dockerfile", "dockerfile", ".go", ".rs", ".java", ".kt", ".kts", ".scala", ".php", ".rb", ".cpp", ".c", ".h", ".hpp", ".cs", ".fs", ".fsx", ".sql", ".graphql", ".gql", ".prisma", ".lua", ".pl", ".pm", ".r", ".dart", ".swift", ".ktm", ".m", ".mm", ".asm", ".s", ".wasm", ".wat", ".wast"]
 
     # MinIO Configuration
     MINIO_ENDPOINT: str = "localhost:9000"

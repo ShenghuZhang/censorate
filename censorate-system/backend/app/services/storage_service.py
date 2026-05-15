@@ -205,15 +205,15 @@ class StorageService:
 
         # Fall back to local storage
         try:
-            # Normalize path: replace backslashes and remove 'skills/' prefix if it exists
+            # Normalize path: replace backslashes
             normalized_path = storage_path.replace("\\", "/")
-            if normalized_path.startswith("skills/"):
-                normalized_path = normalized_path[len("skills/"):]
 
             file_path = self.get_file_path(normalized_path)
             if file_path.exists():
                 with open(file_path, "rb") as f:
                     return f.read()
+            else:
+                print(f"File not found at: {file_path}")
         except Exception as e:
             print(f"Error reading file: {e}")
         return None
@@ -272,6 +272,57 @@ class StorageService:
             ".yml": "application/x-yaml",
             ".txt": "text/plain",
             ".py": "text/x-python",
+            ".js": "text/javascript",
+            ".ts": "text/typescript",
+            ".tsx": "text/typescript",
+            ".jsx": "text/javascript",
+            ".sh": "text/x-shellscript",
+            ".bash": "text/x-shellscript",
+            ".zsh": "text/x-shellscript",
+            ".css": "text/css",
+            ".html": "text/html",
+            ".xml": "text/xml",
+            ".csv": "text/csv",
+            ".ini": "text/plain",
+            ".cfg": "text/plain",
+            ".conf": "text/plain",
+            ".toml": "text/toml",
+            ".env": "text/plain",
+            ".env.example": "text/plain",
+            ".gitignore": "text/plain",
+            ".dockerignore": "text/plain",
+            ".go": "text/x-go",
+            ".rs": "text/rust",
+            ".java": "text/x-java",
+            ".kt": "text/x-kotlin",
+            ".kts": "text/x-kotlin",
+            ".scala": "text/x-scala",
+            ".php": "text/x-php",
+            ".rb": "text/x-ruby",
+            ".cpp": "text/x-c++",
+            ".c": "text/x-c",
+            ".h": "text/x-c",
+            ".hpp": "text/x-c++",
+            ".cs": "text/x-csharp",
+            ".fs": "text/x-fsharp",
+            ".fsx": "text/x-fsharp",
+            ".sql": "text/x-sql",
+            ".graphql": "text/graphql",
+            ".gql": "text/graphql",
+            ".prisma": "text/plain",
+            ".lua": "text/x-lua",
+            ".pl": "text/x-perl",
+            ".pm": "text/x-perl",
+            ".r": "text/x-r",
+            ".dart": "text/x-dart",
+            ".swift": "text/x-swift",
+            ".m": "text/x-objective-c",
+            ".mm": "text/x-objective-c++",
+            ".asm": "text/x-assembly",
+            ".s": "text/x-assembly",
+            ".wasm": "application/wasm",
+            ".wat": "text/webassembly",
+            ".wast": "text/webassembly",
         }
         return content_types.get(ext, "application/octet-stream")
 

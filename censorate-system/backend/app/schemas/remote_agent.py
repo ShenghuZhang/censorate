@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, Any, Dict
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 from uuid import UUID
 
 
@@ -16,6 +16,16 @@ class RemoteAgentCreate(BaseModel):
     capabilities: List[str] = Field(default_factory=list)
     config: Dict[str, Any] = Field(default_factory=dict)
 
+    @field_validator('endpoint_url')
+    @classmethod
+    def validate_endpoint_url(cls, v: str) -> str:
+        """Validate that endpoint URL has proper protocol."""
+        v = v.strip()
+        if not v.startswith(('http://', 'https://')):
+            # Add http:// by default
+            v = f'http://{v}'
+        return v
+
 
 class RemoteAgentUpdate(BaseModel):
     """Schema for updating a remote agent."""
@@ -28,6 +38,17 @@ class RemoteAgentUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=1000)
     capabilities: Optional[List[str]] = None
     config: Optional[Dict[str, Any]] = None
+
+    @field_validator('endpoint_url')
+    @classmethod
+    def validate_endpoint_url(cls, v: Optional[str]) -> Optional[str]:
+        """Validate that endpoint URL has proper protocol."""
+        if v is None:
+            return None
+        v = v.strip()
+        if not v.startswith(('http://', 'https://')):
+            v = f'http://{v}'
+        return v
 
 
 class RemoteAgentResponse(BaseModel):

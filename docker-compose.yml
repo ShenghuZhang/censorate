@@ -1,9 +1,28 @@
-version: '3.8'
+x-disabled-services:
+  # Disable skill-manager for now to avoid startup issues
+  skill-manager:
+    image: python:3.11-slim
+    container_name: censorate-skill-manager
+    restart: unless-stopped
+    volumes:
+      - ./censorate-system/hermes_data:/opt/data
+      - ./censorate-system/backend/scripts/skill_manager.py:/opt/skill_manager.py:ro
+    environment:
+      CENSORATE_URL: http://backend:8216/api/v1
+      HERMES_API_SERVER_KEY: ${HERMES_API_SERVER_KEY}
+    command: >
+      sh -c "pip install httpx python-frontmatter >/dev/null 2>&1 &&
+            echo '[SkillManager] Running initial sync...' &&
+            python /opt/skill_manager.py --hermes-data /opt/data &&
+            echo '[SkillManager] Starting daemon (sync every 1h)...' &&
+            python /opt/skill_manager.py --daemon --interval 3600 --hermes-data /opt/data"
+    depends_on:
+      - backend
 
 services:
   db:
     image: postgres:15
-    container_name: stratos-db
+    container_name: censorate-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-stratos}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
@@ -20,7 +39,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: stratos-redis
+    container_name: censorate-redis
     volumes:
       - redis_data:/data
     ports:
@@ -54,33 +73,30 @@ services:
       API_SERVER_HOST: 0.0.0.0
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
     volumes:
-      # Share hermes_data volume with skill-manager
-      - hermes_data:/opt/data
+      - ./censorate-system/hermes_data:/opt/data
 
   skill-manager:
-    build:
-      context: ./daemon
-      dockerfile: Dockerfile
+    image: python:3.11-slim
     container_name: censorate-skill-manager
     restart: unless-stopped
     volumes:
-      # Share hermes_data directory with Hermes container
-      - hermes_data:/opt/data
+      - ./censorate-system/hermes_data:/opt/data
+      - ./censorate-system/backend/scripts/skill_manager.py:/opt/skill_manager.py:ro
     environment:
-      # Webhook mode doesn't need CENSORATE_URL or HERMES_API_SERVER_KEY
-      HERMES_HOME: /opt/data
-      SKILL_MANAGER_PORT: 8765
-      SKILL_MANAGER_HOST: 0.0.0.0
-    ports:
-      - "8765:8765"
-    # Only server mode (webhook-driven), no polling needed
-    command: ["python", "skill_manager.py", "--server"]
+      CENSORATE_URL: http://backend:8216/api/v1
+      HERMES_API_SERVER_KEY: ${HERMES_API_SERVER_KEY}
+    command: >
+      sh -c "pip install httpx python-frontmatter >/dev/null 2>&1 &&
+             echo '[SkillManager] Running initial sync...' &&
+             python /opt/skill_manager.py --hermes-data /opt/data &&
+             echo '[SkillManager] Starting daemon (sync every 1h)...' &&
+             python /opt/skill_manager.py --daemon --interval 3600 --hermes-data /opt/data"
     depends_on:
       - backend
 
   minio:
     image: minio/minio
-    container_name: stratos-minio
+    container_name: censorate-minio
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -92,8 +108,8 @@ services:
     command: server /data --console-address ":9001"
 
   backend:
-    build: ./backend
-    container_name: stratos-backend
+    build: ./censorate-system/backend
+    container_name: censorate-backend
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-stratos}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-stratos}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -105,12 +121,16 @@ services:
       LARK_APP_SECRET: ${LARK_APP_SECRET}
       DEBUG: ${DEBUG:-false}
       HERMES_DATA_PATH: /opt/data
-      # Default skill-manager URL for webhook (Docker service name)
-      SKILL_MANAGER_URL: http://skill-manager:8765
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-change-me}
+      MINIO_BUCKET_NAME: censorate
+      MINIO_SKILLS_BUCKET_NAME: censorate-skills
+      MINIO_SECURE: false
+      MINIO_PUBLIC_URL: http://localhost:9000
     volumes:
-      - ./backend:/app
-      # Backend doesn't need hermes_data anymore in webhook mode
-      # - hermes_data:/opt/data
+      - ./censorate-system/backend:/app
+      - ./censorate-system/hermes_data:/opt/data
     ports:
       - "8216:8216"
     depends_on:
@@ -125,47 +145,19 @@ services:
       retries: 3
 
   frontend:
-    build: ./frontend
-    container_name: stratos-frontend
+    build: ./censorate-system/frontend
+    container_name: censorate-frontend
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8216/api/v1}
     volumes:
-      - ./frontend:/app
+      - ./censorate-system/frontend:/app
       - /app/node_modules
     ports:
       - "3000:3000"
     depends_on:
       - backend
 
-  init_demo:
-    build: ./backend
-    container_name: censorate-init-demo
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-stratos}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-stratos}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-change-me}
-      MINIO_SECURE: "false"
-      INIT_DEMO_ENABLED: ${INIT_DEMO_ENABLED:-true}
-    volumes:
-      - ./backend:/app
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      - |
-        chmod +x scripts/docker-init-demo.sh
-        scripts/docker-init-demo.sh
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
-    restart: "no"
-
 volumes:
   postgres_data:
   redis_data:
   minio_data:
-  hermes_data:
