@@ -2,990 +2,372 @@
 
 ## 1. System Architecture Overview
 
+### Current Architecture (2026)
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           Web Browser / Client                         │
+│                     Web Browser (Next.js :3000)                       │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
-                                    │ HTTPS / WebSocket
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           API Gateway / Load Balancer                   │
+│               Backend API (FastAPI :8216)                            │
+│  • Projects/Requirements/Tasks • AI Agents • Skills • Remote Agents  │
+│  • Attachments • Comments • Notifications • Integrations             │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-         │  Frontend      │ │  Backend API    │ │  AI Service     │
-         │  (Next.js)     │ │  (FastAPI)      │ │  (Claude API)   │
-         └─────────────────┘ └─────────────────┘ └─────────────────┘
+        ┌───────────────────────────┼───────────────────────────┐
+        ▼                           ▼                           ▼
+┌──────────────┐          ┌──────────────┐          ┌──────────────┐
+│  PostgreSQL  │          │    Redis     │          │    MinIO     │
+│  :5432       │          │   :6379      │          │  :9000/:9001 │
+└──────────────┘          └──────────────┘          └──────────────┘
                                     │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-         │  PostgreSQL     │ │  Redis Cache    │ │  GitHub API     │
-         │  (Primary DB)   │ │  (Session/State)│ │  (Integration)  │
-         └─────────────────┘ └─────────────────┘ └─────────────────┘
+        ┌───────────────────────────┼───────────────────────────┐
+        ▼                           ▼                           ▼
+┌──────────────┐          ┌──────────────┐          ┌──────────────┐
+│    Hermes    │          │Skill Manager │          │  Init Demo  │
+│  (Gateway)   │          │  (Daemon)    │          │  (Optional)  │
+│  :8642       │          │   :8765      │          │              │
+└──────────────┘          └──────────────┘          └──────────────┘
+                                    │
+                                    ▼
+                      ┌─────────────────────────┐
+                      │   hermes_data Volume    │
+                      │   (Shared between      │
+                      │   Hermes & SkillMgr)  │
+                      └─────────────────────────┘
 ```
+
+### Key Architectural Features
+
+1. **Skill Manager Daemon** - Independent webhook-driven service
+2. **Shared Hermes Data** - Co-located skill storage
+3. **MinIO Object Storage** - Attachments and skills files
+4. **Multi-AI Provider** - Claude, OpenAI, DeepSeek
+5. **Healthcheck-based Dependencies** - Robust service startup
+
+---
 
 ## 2. Technology Stack
 
 ### Frontend
-- **Framework**: Next.js 14 (App Router)
-- **UI Components**: shadcn/ui + Tailwind CSS
-- **State Management**: Zustand + React Query
+- **Framework**: Next.js 16+ (App Router)
+- **UI**: shadcn/ui + Tailwind CSS
+- **State**: Zustand + React Query
 - **Drag & Drop**: @dnd-kit/core
-- **Charts**: Recharts
-- **Forms**: React Hook Form + Zod
-- **Typography**: Manrope (Google Fonts)
 
 ### Backend
-- **Framework**: FastAPI 0.100+
-- **Database**: PostgreSQL 15+ with PostGIS
+- **Framework**: FastAPI 0.104+
+- **Database**: PostgreSQL 15+ (Primary) + SQLite (Dev fallback)
 - **ORM**: SQLAlchemy 2.0
 - **Cache**: Redis 7+
-- **Async**: asyncio + uvicorn
-- **Validation**: Pydantic 2.0
 - **Auth**: JWT + OAuth2
+- **Validation**: Pydantic 2.0
 
 ### AI Services
-- **Primary**: Claude 3.5 Sonnet API (Anthropic)
-- **Fallback**: GPT-4 Turbo (OpenAI)
-- **Embeddings**: OpenAI text-embedding-3-small
-- **Vector Store**: pgvector (PostgreSQL extension)
+- **Primary**: Claude 3.5 Sonnet
+- **Fallback**: OpenAI GPT-4
+- **DeepAgent**: DeepSeek API + Framework
+- **Agent Platform**: Hermes with Skills
 
-### DevOps & Infrastructure
-- **Container**: Docker + Docker Compose
-- **CI/CD**: GitHub Actions
-- **Monitoring**: Prometheus + Grafana
-- **Logging**: OpenTelemetry + Loki
-- **Secrets**: AWS Secrets Manager / HashiCorp Vault
+### Storage
+- **Object Storage**: MinIO
+- **Buckets**: `censorate` (attachments), `censorate-skills` (skills)
 
-## 3. Database Schema
+---
 
-### Entity Relationship Diagram
+## 3. Data Model
 
-```
-┌──────────────┐       ┌──────────────┐
-│   Project    │──────►│  Requirement  │
-└──────────────┘       └──────────────┘
-        │                      │
-        │                      ├──────►┌─────────┐
-        │                      │       │  Task   │
-        │                      │       └─────────┘
-        │                      │              │
-        │                      │              ▼
-        │                      │       ┌──────────────┐
-        │                      └──────►│  TestCase    │
-        │                              └──────────────┘
-        │
-        ▼
-┌──────────────┐
-│ GitHubRepo   │
-└──────────────┘
-```
-
-### Table: projects
-```sql
-CREATE TABLE projects (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    project_type VARCHAR(20) NOT NULL CHECK (project_type IN ('non_technical', 'technical')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID NOT NULL REFERENCES users(id),
-    settings JSONB DEFAULT '{}',
-    archived_at TIMESTAMP WITH TIME ZONE,
-    INDEX idx_projects_slug (slug),
-    INDEX idx_projects_type (project_type),
-    INDEX idx_projects_created_by (created_by)
-);
-```
-
-### Table: requirements
-```sql
-CREATE TABLE requirements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    req_number INTEGER NOT NULL,
-    title VARCHAR(500) NOT NULL,
-    description TEXT,
-    status VARCHAR(50) NOT NULL DEFAULT 'new',
-    priority VARCHAR(20) NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
-    source VARCHAR(50),
-    source_metadata JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID NOT NULL REFERENCES users(id),
-    assigned_to UUID REFERENCES users(id),
-    ai_confidence DECIMAL(5,2),
-    ai_suggestions JSONB,
-    return_count INTEGER DEFAULT 0,
-    last_returned_at TIMESTAMP WITH TIME ZONE,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    archived_at TIMESTAMP WITH TIME ZONE,
-    UNIQUE(project_id, req_number),
-    INDEX idx_requirements_project (project_id),
-    INDEX idx_requirements_status (status),
-    INDEX idx_requirements_priority (priority),
-    INDEX idx_requirements_assigned (assigned_to),
-    INDEX idx_requirements_ai_confidence (ai_confidence)
-);
-```
-
-### Table: requirement_transitions
-```sql
-CREATE TABLE requirement_transitions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    requirement_id UUID NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
-    from_status VARCHAR(50),
-    to_status VARCHAR(50) NOT NULL,
-    reason TEXT,
-    created_by UUID NOT NULL REFERENCES users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    INDEX idx_transitions_requirement (requirement_id),
-    INDEX idx_transitions_created (created_at)
-);
-```
-
-### Table: tasks
-```sql
-CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    requirement_id UUID NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
-    task_number INTEGER NOT NULL,
-    title VARCHAR(500) NOT NULL,
-    description TEXT,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    estimate_hours DECIMAL(5,2),
-    github_pr_url VARCHAR(500),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID NOT NULL REFERENCES users(id),
-    assigned_to UUID REFERENCES users(id),
-    started_at TIMESTAMP WITH TIME ZONE,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    UNIQUE(requirement_id, task_number),
-    INDEX idx_tasks_requirement (requirement_id),
-    INDEX idx_tasks_status (status),
-    INDEX idx_tasks_assigned (assigned_to)
-);
-```
-
-### Table: test_cases
-```sql
-CREATE TABLE test_cases (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    requirement_id UUID NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
-    test_number INTEGER NOT NULL,
-    title VARCHAR(500) NOT NULL,
-    description TEXT,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('unit', 'integration', 'e2e', 'manual')),
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    github_run_url VARCHAR(500),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID NOT NULL REFERENCES users(id),
-    UINDEX UNIQUE (requirement_id, test_number),
-    INDEX idx_test_cases_requirement (requirement_id),
-    INDEX idx_test_cases_status (status)
-);
-```
-
-### Table: task_test_cases (Many-to-Many)
-```sql
-CREATE TABLE task_test_cases (
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    test_case_id UUID NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
-    PRIMARY KEY (task_id, test_case_id)
-);
-```
-
-### Table: github_repos
-```sql
-CREATE TABLE github_repos (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    owner VARCHAR(255) NOT NULL,
-    repo VARCHAR(255) NOT NULL,
-    installation_id BIGINT,
-    webhook_id BIGINT,
-    last_synced_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(project_id, owner, repo),
-    INDEX idx_github_repos_project (project_id)
-);
-```
-
-### Table: automation_rules
-```sql
-CREATE TABLE automation_rules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    trigger_type VARCHAR(50) NOT NULL,
-    trigger_config JSONB NOT NULL,
-    conditions JSONB DEFAULT '[]',
-    actions JSONB NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID NOT NULL REFERENCES users(id),
-    INDEX idx_automation_rules_project (project_id),
-    INDEX idx_automation_rules_active (project_id, is_active)
-);
-```
-
-### Table: users
-```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    avatar_url VARCHAR(500),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    INDEX idx_users_email (email)
-);
-```
-
-## 4. API Architecture
-
-### API Layer Structure
+### Core Entities
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           API Gateway                                   │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-         │  Projects API   │ │ Requirements API│ │  Tasks API      │
-         └─────────────────┘ └─────────────────┘ └─────────────────┘
-                    │               │               │
-                    └───────────────┼───────────────┘
-                                    ▼
-         ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-         │  AI Services    │ │  GitHub Service │ │  Analytics API  │
-         └─────────────────┘ └─────────────────┘ └─────────────────┘
+Projects
+  ├── Requirements (with req_number)
+  │   ├── Tasks
+  │   ├── Test Cases
+  │   ├── Attachments
+  │   ├── Comments
+  │   └── Status History
+  ├── Team Members
+  ├── Lane Roles
+  ├── GitHub Repos
+  ├── Remote Agents
+  ├── Skills
+  └── Automation Rules
+
+Other Entities:
+  ├── Users
+  ├── Notifications
+  └── Agent Executions
 ```
 
-### REST API Endpoints
+### Key Models
 
-#### Projects
-```
-GET    /api/v1/projects                    # List projects
-POST   /api/v1/projects                    # Create project
-GET    /api/v1/projects/{id}               # Get project details
-PUT    /api/v1/projects/{id}               # Update project
-DELETE /api/v1/projects/{id}               # Delete project
-POST   /api/v1/projects/{id}/upgrade      # Upgrade to technical
-POST   /api/v1/projects/{id}/link-repo     # Link GitHub repo
-```
+1. **projects** - Project management with technical/non-technical types
+2. **requirements** - Requirements with status, priority, AI metadata
+3. **requirement_status_history** - Full audit trail of state changes
+4. **tasks** - Task breakdowns with GitHub PR links
+5. **test_cases** - Test case management
+6. **remote_agents** - External AI agent configuration
+7. **skills** - Skill definitions with files
+8. **skill_files** - Skill file versioning
+9. **attachments** - File attachments
+10. **comments** - Collaboration comments
+11. **notifications** - User notifications
+12. **agent_executions** - AI agent execution history
 
-#### Requirements
-```
-GET    /api/v1/projects/{project_id}/requirements
-POST   /api/v1/projects/{project_id}/requirements
-GET    /api/v1/requirements/{id}
-PUT    /api/v1/requirements/{id}
-DELETE /api/v1/requirements/{id}
-POST   /api/v1/requirements/{id}/transition
-POST   /api/v1/requirements/{id}/ai-analyze
-GET    /api/v1/requirements/{id}/history
-```
+---
 
-#### Tasks
-```
-GET    /api/v1/requirements/{req_id}/tasks
-POST   /api/v1/requirements/{req_id}/tasks
-GET    /api/v1/tasks/{id}
-PUT    /api/v1/tasks/{id}
-DELETE /api/v1/tasks/{id}
-POST   /api/v1/tasks/{id}/generate-tests
-```
+## 4. API Module Overview
 
-#### Test Cases
-```
-GET    /api/v1/requirements/{req_id}/test-cases
-POST   /api/v1/requirements/{req_id}/test-cases
-GET    /api/v1/test-cases/{id}
-PUT    /api/v1/test-cases/{id}
-DELETE /api/v1/test-cases/{id}
-POST   /api/v1/test-cases/{id}/run
-```
+### Core Modules (api/v1/endpoints/)
 
-#### Automation
-```
-GET    /api/v1/projects/{project_id}/automation-rules
-POST   /api/v1/projects/{project_id}/automation-rules
-GET    /api/v1/automation-rules/{id}
-PUT    /api/v1/automation-rules/{id}
-DELETE /api/v1/automation-rules/{id}
-POST   /api/v1/automation-rules/{id}/test
-```
+| Module | Key Endpoints |
+|--------|--------------|
+| projects | CRUD, upgrade, link repo |
+| requirements | CRUD, transition, analyze, history, attachments, comments |
+| tasks | CRUD, generate-tests |
+| test_cases | CRUD, run |
+| remote_agents | CRUD, sync, test-connection |
+| skills | CRUD, file upload/download |
+| notifications | Get, mark read, delete |
+| automation_rules | CRUD, test |
+| analytics | cycle-time, cfd, efficiency, bottlenecks |
+| agents | execute, get executions |
+| auth | login, register, refresh |
+| profile | user profile management |
+| github_repos | GitHub repo management |
 
-#### Analytics
+### Skill Manager Webhook
+
+- **POST** `/webhook/agent-updated` - Backend notifies Skill Manager of skill changes
+- Payload includes agent info, capabilities, and skill files
+
+---
+
+## 5. Skill System Architecture
+
+### Synchronization Flow
+
 ```
-GET    /api/v1/projects/{project_id}/analytics/cycle-time
-GET    /api/v1/projects/{project_id}/analytics/cfd
-GET    /api/v1/projects/{project_id}/analytics/efficiency
-GET    /api/v1/projects/{project_id}/analytics/bottlenecks
+Backend Skill CRUD
+    ↓
+Webhook to Skill Manager (with full skill data)
+    ↓
+Skill Manager saves to hermes_data/skills/
+    ↓
+Hermes uses updated skills
 ```
 
-## 5. State Machine Architecture
+### Skill Storage
 
-### Requirement State Machine
+- **Database** - `skills` and `skill_files` tables
+- **MinIO** - `censorate-skills` bucket
+- **Local** - `hermes_data/skills/` (shared volume)
+
+### Skill Manager Daemon
+
+- Runs as independent service on port 8765
+- Webhook-only mode (no polling)
+- Shares `hermes_data` volume with Hermes
+
+---
+
+## 6. Storage Architecture
+
+### Storage Service
+
+Abstracted storage supporting both MinIO and local:
 
 ```python
-class RequirementState:
-    NEW = "new"
-    ANALYSIS = "analysis"
-    DESIGN = "design"
-    DEVELOPMENT = "development"
-    TESTING = "testing"
-    COMPLETED = "completed"
+class StorageService:
+    storage_type: 'minio' or 'local'
 
-class RequirementStateMachine:
-    NON_TECHNICAL_TRANSITIONS = {
-        RequirementState.NEW: [RequirementState.ANALYSIS],
-        RequirementState.ANALYSIS: [RequirementState.DESIGN, RequirementState.NEW],
-        RequirementState.DESIGN: [RequirementState.ANALYSIS, RequirementState.COMPLETED],
-        RequirementState.COMPLETED: [RequirementState.DESIGN]
-    }
-
-    TECHNICAL_TRANSITIONS = {
-        RequirementState.NEW: [RequirementState.ANALYSIS],
-        RequirementState.ANALYSIS: [RequirementState.DESIGN, RequirementState.NEW],
-        RequirementState.DESIGN: [RequirementState.ANALYSIS, RequirementState.DEVELOPMENT],
-        RequirementState.DEVELOPMENT: [RequirementState.DESIGN, RequirementState.TESTING],
-        RequirementState.TESTING: [RequirementState.DEVELOPMENT, RequirementState.COMPLETED],
-        RequirementState.COMPLETED: [RequirementState.TESTING]
-    }
-
-    @staticmethod
-    def can_transition(from_state, to_state, project_type):
-        transitions = (
-            RequirementStateMachine.TECHNICAL_TRANSITIONS
-            if project_type == "technical"
-            else RequirementStateMachine.NON_TECHNICAL_TRANSITIONS
-        )
-        return to_state in transitions.get(from_state, [])
-
-    @staticmethod
-    def is_backward_transition(from_state, to_state, project_type):
-        transitions = (
-            RequirementStateMachine.TECHNICAL_TRANSITIONS
-            if project_type == "technical"
-            else RequirementStateMachine.NON_TECHNICAL_TRANSITIONS
-        )
-        state_order = [RequirementState.NEW, RequirementState.ANALYSIS, RequirementState.DESIGN,
-                       RequirementState.DEVELOPMENT, RequirementState.TESTING, RequirementState.COMPLETED]
-        try:
-            return state_order.index(to_state) < state_order.index(from_state)
-        except ValueError:
-            return False
+    save_file(filename, content, content_type) → path
+    get_file(path) → bytes
+    delete_file(path)
 ```
 
-## 6. AI Service Architecture
-
-### AI Service Layer
+### MinIO Layout
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        AI Service Manager                               │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────┐
-        ▼                           ▼                           ▼
-┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│  Triage Service │      │  Duplicate      │      │  Task Breakdown │
-│                 │      │  Detection      │      │  Generator      │
-└─────────────────┘      └─────────────────┘      └─────────────────┘
-        │                           │                           │
-        ▼                           ▼                           ▼
-┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│  Claude API     │      │  Embedding +    │      │  Claude API     │
-│  (Direct)       │      │  Vector Search  │      │  (Prompt)       │
-└─────────────────┘      └─────────────────┘      └─────────────────┘
+censorate/
+└── attachments/{project_id}/[requirements|tasks]/{id}/
+
+censorate-skills/
+└── {skill_id}/[SKILL.md, requirements.txt, ...]
 ```
 
-### AI Triage Service
+---
 
-```python
-class AITriageService:
-    """
-    Analyzes incoming requirements and provides:
-    - Priority classification
-    - Complexity estimation
-    - Skill requirements
-    - Suggested assignees
-    """
+## 7. Deployment Architecture
 
-    async def triage_requirement(self, requirement: Requirement) -> TriageResult:
-        prompt = self._build_triage_prompt(requirement)
-        response = await self.claude_client.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}]
-        )
+### Docker Compose Services
 
-        result = self._parse_triage_response(response)
-        await self._update_requirement_with_triage(requirement.id, result)
-        return result
+| Service | Image | Port | Purpose |
+|---------|-------|------|---------|
+| db | postgres:15 | 5432 | Database |
+| redis | redis:7-alpine | 6379 | Cache |
+| hermes | nousresearch/hermes-agent:latest | 8642 | Agent Gateway |
+| skill-manager | Custom build (daemon/) | 8765 | Skill Sync Daemon |
+| minio | minio/minio | 9000, 9001 | Object Storage |
+| backend | Custom build (backend/) | 8216 | Backend API |
+| frontend | Custom build (frontend/) | 3000 | Frontend UI |
+| init_demo | Custom build (backend/) | - | Demo data init (optional) |
 
-    def _build_triage_prompt(self, requirement: Requirement) -> str:
-        return f"""Analyze this requirement and provide a JSON response:
+### Volumes
 
-Title: {requirement.title}
-Description: {requirement.description}
+- `postgres_data` - Database persistence
+- `redis_data` - Redis persistence
+- `minio_data` - MinIO object storage
+- `hermes_data` - Shared Hermes skill storage
 
-Return JSON with:
-{{
-  "priority": "high" | "medium" | "low",
-  "complexity": 1-10,
-  "estimated_days": number,
-  "required_skills": ["skill1", "skill2"],
-  "suggested_assignee": "username or null",
-  "reasoning": "brief explanation"
-}}
-"""
-```
+---
 
-### Duplicate Detection Service
+## 8. Project Structure
 
-```python
-class DuplicateDetectionService:
-    """
-    Detects duplicate or similar requirements using:
-    - Semantic similarity (embeddings + cosine similarity)
-    - Exact title matching
-    - Keyword overlap
-    """
-
-    async def find_duplicates(
-        self,
-        requirement: Requirement,
-        threshold: float = 0.85
-    ) -> List[PotentialDuplicate]:
-        # Get embedding for new requirement
-        embedding = await self._get_embedding(requirement)
-
-        # Search for similar requirements in the same project
-        similar = await self.vector_store.similarity_search(
-            vector=embedding,
-            collection=f"project_{requirement.project_id}",
-            threshold=threshold,
-            limit=10
-        )
-
-        # Calculate detailed similarity scores
-        duplicates = []
-        for req_id, score in similar:
-            other_req = await self.repo.get(req_id)
-            similarity = await self._calculate_detailed_similarity(
-                requirement, other_req
-            )
-            if similarity.overall_score >= threshold:
-                duplicates.append(PotentialDuplicate(
-                    requirement_id=other_req.id,
-                    req_number=other_req.req_number,
-                    title=other_req.title,
-                    overall_score=similarity.overall_score,
-                    title_similarity=similarity.title_similarity,
-                    description_similarity=similarity.description_similarity,
-                    keyword_overlap=similarity.keyword_overlap
-                ))
-
-        return sorted(duplicates, key=lambda x: x.overall_score, reverse=True)
-
-    async def _get_embedding(self, requirement: Requirement) -> List[float]:
-        text = f"{requirement.title} {requirement.description}"
-        response = await self.openai_client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text
-        )
-        return response.data[0].embedding
-```
-
-### Task Breakdown Generator
-
-```python
-class TaskBreakdownGenerator:
-    """
-    Generates development task breakdowns from requirements
-    """
-
-    async def generate_tasks(
-        self,
-        requirement: Requirement,
-        include_tests: bool = True
-    ) -> List[GeneratedTask]:
-        prompt = self._build_breakdown_prompt(requirement, include_tests)
-        response = await self.claude_client.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        tasks = self._parse_task_response(response)
-        return tasks
-
-    def _build_breakdown_prompt(
-        self,
-        requirement: Requirement,
-        include_tests: bool
-    ) -> str:
-        return f"""Break down this requirement into development tasks:
-
-Title: {requirement.title}
-Description: {requirement.description}
-
-Return JSON array of tasks:
-[
-  {{
-    "title": "task title",
-    "description": "detailed description",
-    "estimated_hours": number,
-    "dependencies": ["task_index or null"],
-    "test_cases": ["test description"] if include_tests else []
-  }}
-]
-
-Break down into atomic, completable tasks.
-"""
-```
-
-## 7. GitHub Integration Architecture
-
-### GitHub Service Components
+### Backend (censorate-system/backend/)
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      GitHub Integration Service                          │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────┐
-        ▼                           ▼                           ▼
-┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│  Webhook        │      │  PR Sync       │      │  Commit Linking │
-│  Handler        │      │  Service        │      │  Service        │
-└─────────────────┘      └─────────────────┘      └─────────────────┘
+app/
+├── api/v1/endpoints/     - API route handlers (15+ modules)
+├── core/                 - Config, security, cache, logger
+├── models/               - SQLAlchemy models (15+ models)
+├── schemas/              - Pydantic schemas
+├── repositories/         - Data access layer
+├── services/             - Business logic
+│   ├── storage_service.py
+│   ├── skill_service.py
+│   ├── remote_agent_service.py
+│   └── notification_service.py
+├── agents/               - AI agent implementations
+├── skills/               - Built-in skills (SKILL.md)
+├── state_machine/        - Requirement state management
+└── utils/                - Helpers and validators
+
+scripts/
+├── init_mock_data.py
+└── docker-init-demo.sh
 ```
 
-### Webhook Handling
-
-```python
-class GitHubWebhookHandler:
-    async def handle_webhook(self, payload: dict, signature: str):
-        # Verify webhook signature
-        if not self._verify_signature(payload, signature):
-            raise HTTPException(status_code=401)
-
-        event_type = payload.get("action")
-
-        if event_type == "opened":
-            await self._handle_pr_opened(payload)
-        elif event_type == "closed":
-            await self._handle_pr_closed(payload)
-        elif event_type == "synchronize":
-            await self._handle_pr_updated(payload)
-
-    async def _handle_pr_opened(self, payload: dict):
-        pr_data = {
-            "number": payload["pull_request"]["number"],
-            "title": payload["pull_request"]["title"],
-            "url": payload["pull_request"]["html_url"],
-            "author": payload["pull_request"]["user"]["login"],
-            "branch": payload["pull_request"]["head"]["ref"]
-        }
-
-        # Find associated task from PR title pattern "TASK-XXX: title"
-        task_number = self._extract_task_number(pr_data["title"])
-        if task_number:
-            await self.task_repo.update_pr_url(task_number, pr_data["url"])
-```
-
-## 8. Automation Engine Architecture
-
-### Automation Rule Engine
-
-```python
-class AutomationEngine:
-    """
-    Evaluates and executes automation rules based on events
-    """
-
-    async def process_event(self, event: AutomationEvent):
-        # Get all active rules for the project
-        rules = await self.rule_repo.get_active_rules(event.project_id)
-
-        for rule in rules:
-            # Check if rule matches trigger
-            if self._matches_trigger(rule, event):
-                # Check conditions
-                if await self._check_conditions(rule, event):
-                    # Execute actions
-                    await self._execute_actions(rule, event)
-
-    def _matches_trigger(self, rule: AutomationRule, event: AutomationEvent) -> bool:
-        trigger_type = rule.trigger_config["type"]
-        return trigger_type == event.type
-
-    async def _check_conditions(
-        self,
-        rule: AutomationRule,
-        event: AutomationEvent
-    ) -> bool:
-        for condition in rule.conditions:
-            if not await self._evaluate_condition(condition, event):
-                return False
-        return True
-
-    async def _execute_actions(
-        self,
-        rule: AutomationRule,
-        event: AutomationEvent
-    ):
-        for action in rule.actions:
-            action_type = action["type"]
-            if action_type == "send_notification":
-                await self._send_notification(action, event)
-            elif action_type == "assign_user":
-                await self._assign_user(action, event)
-            elif action_type == "update_field":
-                await self._update_field(action, event)
-```
-
-## 9. Analytics Engine Architecture
-
-### Cycle Time Calculator
-
-```python
-class CycleTimeCalculator:
-    """
-    Calculates cycle time metrics for requirements
-    """
-
-    async def calculate_project_cycle_time(
-        self,
-        project_id: str,
-        from_date: datetime,
-        to_date: datetime
-    ) -> CycleTimeMetrics:
-        requirements = await self.req_repo.get_completed_in_range(
-            project_id, from_date, to_date
-        )
-
-        cycle_times = []
-        for req in requirements:
-            transitions = await self.transition_repo.get_by_requirement(req.id)
-            cycle_time = self._calculate_total_cycle_time(transitions)
-            cycle_times.append(cycle_time)
-
-        return CycleTimeMetrics(
-            average=sum(cycle_times) / len(cycle_times),
-            median=statistics.median(cycle_times),
-            p90=statistics.quantiles(cycle_times, n=10)[8],
-            min=min(cycle_times),
-            max=max(cycle_times),
-            count=len(cycle_times)
-        )
-```
-
-### CFD (Cumulative Flow Diagram) Generator
-
-```python
-class CFDGenerator:
-    """
-    Generates Cumulative Flow Diagram data
-    """
-
-    async def generate_cfd(
-        self,
-        project_id: str,
-        from_date: datetime,
-        to_date: datetime
-    ) -> List[CFDDataPoint]:
-        # Get all transitions in the period
-        transitions = await self.transition_repo.get_in_range(
-            project_id, from_date, to_date
-        )
-
-        # Build cumulative counts per lane per day
-        daily_counts = defaultdict(lambda: defaultdict(int))
-
-        for transition in transitions:
-            day = transition.created_at.date()
-            daily_counts[day][transition.to_status] += 1
-
-        # Calculate cumulative values
-        cfd_data = []
-        cumulative = defaultdict(int)
-
-        for day in sorted(daily_counts.keys()):
-            for lane, count in daily_counts[day].items():
-                cumulative[lane] += count
-
-            cfd_data.append(CFDDataPoint(
-                date=day,
-                new=cumulative["new"],
-                analysis=cumulative["analysis"],
-                design=cumulative["design"],
-                development=cumulative["development"],
-                testing=cumulative["testing"],
-                completed=cumulative["completed"]
-            ))
-
-        return cfd_data
-```
-
-## 10. Security Architecture
-
-### Authentication & Authorization
-
-```python
-# JWT Authentication
-class JWTAuthenticator:
-    def create_token(self, user_id: str) -> str:
-        payload = {
-            "sub": user_id,
-            "iat": datetime.utcnow(),
-            "exp": datetime.utcnow() + timedelta(hours=24)
-        }
-        return jwt.encode(payload, self.secret_key, algorithm="HS256")
-
-    def verify_token(self, token: str) -> str:
-        try:
-            payload = jwt.decode(token, self.secret_key, algorithms=["HS256"])
-            return payload["sub"]
-        except jwt.InvalidTokenError:
-            raise HTTPException(status_code=401, detail="Invalid token")
-
-# Project-Based Authorization
-class ProjectAuthorizer:
-    async def check_access(
-        self,
-        user_id: str,
-        project_id: str,
-        required_permission: str
-    ) -> bool:
-        project = await self.project_repo.get(project_id)
-
-        # Project creator has all permissions
-        if project.created_by == user_id:
-            return True
-
-        # Check project membership
-        membership = await self.membership_repo.get(user_id, project_id)
-        if not membership:
-            return False
-
-        return required_permission in membership.permissions
-```
-
-### Data Isolation
-
-All queries include project_id filtering to ensure data isolation:
-
-```python
-class RequirementRepository:
-    async def get_all(self, project_id: str, user_id: str) -> List[Requirement]:
-        """Always filters by project_id for security"""
-        await self.authorizer.check_access(user_id, project_id, "read")
-
-        query = select(Requirement).where(
-            Requirement.project_id == project_id
-        )
-        return await self.db.execute(query)
-```
-
-## 11. Caching Strategy
-
-### Cache Layers
+### Daemon (censorate-system/daemon/)
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           Application Layer                             │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Redis Cache (L1)                               │
-│  - Session data                                                        │
-│  - Hot project data (1 hour)                                           │
-│  - User permissions (30 min)                                            │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        PostgreSQL Database (L2)                         │
-│  - Persistent data storage                                             │
-│  - Query result caching via prepared statements                        │
-└─────────────────────────────────────────────────────────────────────────┘
+skill_manager.py       - Skill Manager daemon
+requirements.txt
+Dockerfile
 ```
 
-### Cache Keys Pattern
+### Frontend (censorate-system/frontend/)
 
-```python
-class CacheKeys:
-    PROJECT = "project:{project_id}"
-    PROJECT_REQUIREMENTS = "project:{project_id}:requirements"
-    REQUIREMENT = "requirement:{requirement_id}"
-    USER_PERMISSIONS = "user:{user_id}:permissions:{project_id}"
-    ANALYTICS_CFD = "analytics:cfd:{project_id}:{date_range_hash}"
+```
+app/
+├── components/
+│   ├── kanban/
+│   ├── team/
+│   ├── requirement/
+│   ├── skills/
+│   └── agents/
+├── hooks/               - Custom hooks
+├── stores/              - Zustand state stores
+└── lib/api/             - API client modules
 ```
 
-## 12. Error Handling Strategy
+---
 
-### Error Types
+## 9. Key Integrations
 
-```python
-class CensorateError(Exception):
-    """Base exception for Censorate errors"""
+### Backend ↔ Skill Manager
+- Webhook at `/webhook/agent-updated`
+- Payload includes agent info, capabilities, skill files
+- Skill Manager saves to shared `hermes_data` volume
 
-class NotFoundError(CensorateError):
-    """Resource not found"""
+### Backend ↔ MinIO
+- Storage service abstracts MinIO
+- Fallback to local storage for dev
 
-class ValidationError(CensorateError):
-    """Validation error"""
+### Backend ↔ Hermes
+- DeepAgentService integrates with Hermes
+- Agent executions tracked in database
 
-class TransitionError(CensorateError):
-    """Invalid state transition"""
+---
 
-class AuthorizationError(CensorateError):
-    """Authorization failure"""
+## 10. Environment Configuration
 
-class AIServiceError(CensorateError):
-    """AI service error"""
+### Backend Config (app/core/config.py)
 
-class GitHubIntegrationError(CensorateError):
-    """GitHub integration error"""
+Key settings:
+- Database & Redis connections
+- AI provider API keys (Claude, OpenAI, DeepSeek)
+- Skill Manager webhook URL
+- MinIO or local storage selection
+- Upload size limits
+- JWT configuration
+
+### Docker Compose Env
+
+Root `.env` configures:
+- Database credentials
+- API keys
+- MinIO credentials
+- Hermes config
+- Init demo toggle
+
+---
+
+## 11. Quick Start
+
+### Full Docker Deployment
+
+```bash
+# Setup
+cd /Users/moya/Workspace/stichdemo
+cp .env.example .env
+# Edit .env with your keys
+
+# Start
+docker-compose up -d
+
+# Access
+# Frontend: http://localhost:3000
+# Backend Docs: http://localhost:8216/docs
+# MinIO Console: http://localhost:9001
+
+# Stop
+docker-compose down
 ```
 
-### Global Error Handler
+### Local Development
 
-```python
-@app.exception_handler(CensorateError)
-async def stratos_error_handler(request, exc):
-    return JSONResponse(
-        status_code=400,
-        content={"error": exc.__class__.__name__, "message": str(exc)}
-    )
+```bash
+# Backend
+cd censorate-system/backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python main.py
 
-@app.exception_handler(NotFoundError)
-async def not_found_handler(request, exc):
-    return JSONResponse(
-        status_code=404,
-        content={"error": "not_found", "message": str(exc)}
-    )
+# Frontend
+cd censorate-system/frontend
+npm install
+npm run dev
 ```
 
-## 13. Monitoring & Observability
+---
 
-### Metrics Collection
+## 12. 2026 Architectural Updates Summary
 
-```python
-# Prometheus metrics
-from prometheus_client import Counter, Histogram, Gauge
+Major additions/changes:
 
-requirement_created = Counter(
-    'stratos_requirement_created_total',
-    'Total number of requirements created',
-    ['project_id', 'priority']
-)
-
-requirement_transition_duration = Histogram(
-    'stratos_requirement_transition_duration_seconds',
-    'Time requirements spend in each lane',
-    ['from_state', 'to_state']
-)
-
-active_requirements = Gauge(
-    'stratos_active_requirements',
-    'Number of active requirements',
-    ['project_id', 'state']
-)
-
-api_request_duration = Histogram(
-    'stratos_api_request_duration_seconds',
-    'API request duration',
-    ['endpoint', 'method']
-)
-```
-
-### Distributed Tracing
-
-```python
-from opentelemetry import trace
-tracer = trace.get_tracer(__name__)
-
-@tracer.start_as_current_span("create_requirement")
-async def create_requirement(project_id: str, data: dict):
-    current_span = trace.get_current_span()
-    current_span.set_attribute("project_id", project_id)
-    current_span.set_attribute("priority", data.get("priority"))
-
-    # ... implementation ...
-```
-
-## 14. Deployment Architecture
-
-### Docker Services
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-
-services:
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://api:8000
-
-  api:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/stratos
-      - REDIS_URL=redis://redis:6379
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-      - POSTGRES_DB=stratos
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-
-  grafana:
-    image: grafana/grafana
-    ports:
-      - "3001:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-
-volumes:
-  postgres_data:
-  redis_data:
-  grafana_data:
-```
+1. **Skill Manager Daemon** - Independent webhook-driven service
+2. **Shared Hermes Data Volume** - Co-located skill storage
+3. **MinIO Storage** - Object storage for attachments and skills
+4. **Remote Agents API** - External AI agent management
+5. **Skills API** - Full skill CRUD and file management
+6. **Notifications System** - Real-time user notifications
+7. **Attachments & Comments** - Collaboration features
+8. **Agent Executions** - AI execution tracking
+9. **Status History** - Full audit trail
+10. **Healthcheck-based Startup** - Robust service dependencies
+11. **Init Demo Service** - Optional demo data initialization
