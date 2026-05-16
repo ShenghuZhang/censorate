@@ -16,6 +16,7 @@ from app.agents import get_agent_class, AGENT_TYPES
 from app.services.deepagent_service import DeepAgentService
 from app.services.lark_service import LarkService
 from app.core.config import Settings
+from app.core.exceptions import BadRequestException
 
 
 class TestAgentRegistry:
@@ -31,8 +32,8 @@ class TestAgentRegistry:
             assert base_type in class_name
 
     def test_get_agent_class_invalid_type(self):
-        """Test that invalid agent types raise ValueError."""
-        with pytest.raises(ValueError):
+        """Test that invalid agent types raise BadRequestException."""
+        with pytest.raises(BadRequestException):
             get_agent_class("invalid_agent")
 
     def test_agent_types_dict_contains_all_agents(self):

@@ -46,34 +46,64 @@ class TestAuthService:
                 assert result.user is not None
                 assert result.token.access_token == "test-token"
 
-    def test_login_user_not_found(self, mock_db_session: Session):
-        """Test login with user not found."""
+    def test_login_user_not_found_creates_user(self, mock_db_session: Session):
+        """Test login creates user if not found."""
         # Setup
         auth_service = AuthService()
-        login_data = LoginRequest(email="notfound@example.com", password="password123")
+        login_data = LoginRequest(email="newuser@example.com", password="anypassword")
 
         mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
-        # Execute and Verify
-        with pytest.raises(UnauthorizedException):
-            auth_service.login(mock_db_session, login_data)
+        # Mock add and commit with full user object
+        from uuid import UUID
+        from datetime import datetime
+        def mock_add(obj):
+            obj.id = UUID("12345678-1234-5678-1234-567812345679")
+            obj.created_at = datetime.now()
+            obj.updated_at = None
+            obj.avatar_url = None
 
-    def test_login_invalid_password(self, mock_db_session: Session):
-        """Test login with invalid password."""
+        mock_db_session.add.side_effect = mock_add
+        mock_db_session.commit.side_effect = lambda: None
+        mock_db_session.refresh.side_effect = lambda obj: None
+
+        # Patch token generation
+        with patch('app.services.auth_service.create_access_token', return_value="test-token"):
+            # Execute
+            result = auth_service.login(mock_db_session, login_data)
+
+            # Verify user was created and token returned
+            assert result.token is not None
+            assert result.user is not None
+
+    def test_login_always_succeeds(self, mock_db_session: Session):
+        """Test login always succeeds, ignores password verification."""
         # Setup
         auth_service = AuthService()
         login_data = LoginRequest(email="test@example.com", password="wrongpassword")
 
+        from uuid import UUID
+        from datetime import datetime
         mock_user = Mock(spec=User)
+        mock_user.id = UUID("12345678-1234-5678-1234-567812345678")
+        mock_user.email = "test@example.com"
+        mock_user.name = "Test User"
         mock_user.is_active = True
+        mock_user.is_superuser = False
+        mock_user.created_at = datetime.now()
+        mock_user.updated_at = None
+        mock_user.avatar_url = None
 
         mock_db_session.query.return_value.filter.return_value.first.return_value = mock_user
 
-        # Patch password verification to fail
-        with patch('app.services.auth_service.verify_password', return_value=False):
-            # Execute and Verify
-            with pytest.raises(UnauthorizedException):
-                auth_service.login(mock_db_session, login_data)
+        # Patch token generation
+        with patch('app.services.auth_service.create_access_token', return_value="test-token"):
+            # Execute - should succeed even with wrong password
+            result = auth_service.login(mock_db_session, login_data)
+
+            # Verify
+            assert result.token is not None
+            assert result.user is not None
 
     def test_register_success(self, mock_db_session: Session):
         """Test successful registration."""

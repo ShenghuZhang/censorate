@@ -139,7 +139,53 @@ FastAPI auto-generated docs available at: http://localhost:8216/docs
 
 - **Unit Tests**: `backend/tests/unit/` - pytest
 - **Integration Tests**: `backend/tests/integration/` - pytest
-- **E2E Tests**: `tests/e2e/` - Playwright
+- **E2E Tests**: 
+  - Backend: `backend/tests/e2e/` - pytest
+  - Frontend: `frontend/tests/e2e/` - Playwright
+
+## TDD (Test-Driven Development)
+
+**MANDATORY: All new development must follow TDD**
+
+### Core Principle
+```
+RED → GREEN → REFACTOR
+```
+1. RED: Write failing test first
+2. GREEN: Minimal code to pass
+3. REFACTOR: Clean up, keep tests green
+
+### Quick Reference
+- **TDD Guidelines**: [docs/tdd-guidelines.md](docs/tdd-guidelines.md) - Full TDD workflow and rules
+- **Test Assessment**: [docs/test-assessment.md](docs/test-assessment.md) - Current test quality and improvement plan
+
+### Testing Commands
+```bash
+# Backend tests
+cd censorate-system/backend
+python -m pytest tests/unit/ -v          # Unit tests
+python -m pytest tests/integration/ -v   # Integration tests
+python -m pytest tests/ -v               # All tests
+
+# Frontend tests
+cd censorate-system/frontend
+npm run test:e2e                         # Playwright E2E tests
+npm run test:e2e:ui                      # Playwright with UI
+```
+
+### Commit Message Convention
+```
+RED: Test <feature> fails
+GREEN: Implement <feature>
+REFACTOR: Clean up <feature> code
+```
+
+### The Iron Law
+**NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST**
+
+If you wrote code before test: DELETE IT. Start over with TDD.
+
+Exceptions only with explicit approval.
 
 ## Common Tasks
 
