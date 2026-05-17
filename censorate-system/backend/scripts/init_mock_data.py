@@ -17,6 +17,7 @@ from app.models.team_member import TeamMember
 from app.models.requirement import Requirement
 from app.models.skill import Skill, SkillVersion, SkillFile
 from app.models.task import Task
+from app.models.remote_agent import RemoteAgent
 from pathlib import Path
 
 
@@ -143,7 +144,33 @@ def init_mock_data():
         db.commit()
 
         # ========================================
-        # 3. Create Team Members (Humans + AI Agents)
+        # 3. Register Hermes Remote Agent
+        # ========================================
+        print()
+        print("🤖 Registering Hermes agent...")
+
+        hermes_agent = db.query(RemoteAgent).filter(RemoteAgent.name == "Hermes Demo Agent").first()
+        if not hermes_agent:
+            hermes_agent = RemoteAgent(
+                id=str(uuid.uuid4()),
+                name="Hermes Demo Agent",
+                agent_type="hermes",
+                endpoint_url="http://hermes:8642",
+                health_check_path="/health",
+                description="Demo Hermes agent for Censorate system",
+                status="offline",
+                capabilities=["analysis", "design", "coding", "testing"],
+                config={}
+            )
+            db.add(hermes_agent)
+            db.commit()
+            print(f"  ✅ Registered Hermes agent: {hermes_agent.name}")
+            print(f"  🌐 Endpoint: {hermes_agent.endpoint_url}")
+        else:
+            print(f"  ℹ️  Hermes agent already exists: {hermes_agent.name}")
+
+        # ========================================
+        # 4. Create Team Members (Humans + AI Agents)
         # ========================================
         print()
         print("👥 Creating team members...")
@@ -154,29 +181,45 @@ def init_mock_data():
                 "name": "Analysis Agent",
                 "nickname": "Alex",
                 "role": "analysis_agent",
-                "skills": ["requirements_analysis", "stakeholder_interview", "risk_identification"],
-                "type": "ai"
+                "skills": ["requirements-analysis", "risk-identification"],
+                "type": "ai",
+                "deepagent_config": {
+                    "agent_type": "hermes",
+                    "capabilities": ["analysis"]
+                }
             },
             {
                 "name": "Design Agent",
                 "nickname": "Diana",
                 "role": "design_agent",
-                "skills": ["system_design", "architecture", "prototyping"],
-                "type": "ai"
+                "skills": ["system-design"],
+                "type": "ai",
+                "deepagent_config": {
+                    "agent_type": "hermes",
+                    "capabilities": ["design"]
+                }
             },
             {
                 "name": "Development Agent",
                 "nickname": "Devon",
                 "role": "development_agent",
-                "skills": ["coding", "code_review", "testing"],
-                "type": "ai"
+                "skills": ["code-development", "code-review"],
+                "type": "ai",
+                "deepagent_config": {
+                    "agent_type": "hermes",
+                    "capabilities": ["coding"]
+                }
             },
             {
                 "name": "Testing Agent",
                 "nickname": "Tina",
                 "role": "testing_agent",
-                "skills": ["test_design", "quality_assurance", "bug_reporting"],
-                "type": "ai"
+                "skills": ["test-design"],
+                "type": "ai",
+                "deepagent_config": {
+                    "agent_type": "hermes",
+                    "capabilities": ["testing"]
+                }
             }
         ]
 
@@ -224,7 +267,7 @@ def init_mock_data():
                         status="active",
                         skills=agent_data["skills"],
                         memory_enabled=True,
-                        deepagent_config={}
+                        deepagent_config=agent_data.get("deepagent_config", {})
                     )
                     db.add(agent)
                     print(f"  ✅ [{project.name}] Added AI agent: {agent.name}")
@@ -251,7 +294,7 @@ def init_mock_data():
         db.commit()
 
         # ========================================
-        # 4. Create Requirements
+        # 5. Create Requirements
         # ========================================
         print()
         print("📝 Creating requirements...")
@@ -370,7 +413,7 @@ def init_mock_data():
         db.commit()
 
         # ========================================
-        # 5. Create Skills
+        # 6. Create Skills
         # ========================================
         print()
         print("🔧 Creating skills...")
@@ -525,7 +568,7 @@ def init_mock_data():
         db.commit()
 
         # ========================================
-        # 6. Create Tasks
+        # 7. Create Tasks
         # ========================================
         print()
         print("📋 Creating tasks...")
