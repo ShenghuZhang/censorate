@@ -1,9 +1,6 @@
-FROM node:22-alpine
+FROM node:22-slim
 
 WORKDIR /app
-
-# Install system dependencies for node-gyp and other tools if needed
-RUN apk add --no-cache libc6-compat
 
 # Copy package files
 COPY package*.json ./

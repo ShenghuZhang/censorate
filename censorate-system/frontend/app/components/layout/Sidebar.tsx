@@ -7,6 +7,7 @@ import {
   Settings as SettingsIcon,
   Brain,
   Bot,
+  LayoutDashboard,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useProjectStore } from '@/app/stores/projectStore';
@@ -33,8 +34,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   }[] = [
     {
       items: [
-        { name: 'Kanban', href: currentProject ? `/kanban?project_id=${currentProject.id}` : '/kanban', icon: Kanban },
-        { name: 'Analytics', href: currentProject ? `/analytics?project_id=${currentProject.id}` : '/analytics', icon: BarChart3 },
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       ],
     },
     {
