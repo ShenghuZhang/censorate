@@ -4,21 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Censorate is an AI-native requirement management system organized by Projects with "AI First, Human Check" philosophy. The main working directory is `censorate-system/`.
+Censorate is an **AI code generation platform**. Describe requirements → AI generates structured PRD → user confirms → AI generates complete runnable code → user reviews → pushed to GitHub. The main working directory is `censorate-system/`.
 
-## Quick Start Commands
+**Tech stack**: FastAPI (Python 3.11) + Next.js 16 (TypeScript) + PostgreSQL + Redis + Claude API + GitHub API.
+
+## Quick Start
 
 ```bash
-# Start both backend and frontend services
+# Start all services (backend port 8216, frontend port 3000)
 ./run.sh start
 
 # Stop all services
 ./run.sh stop
 
-# Check service status
-./run.sh status
-
-# Setup project environment
+# Setup: create venv, install deps
 ./run.sh setup
 ```
 
@@ -29,183 +28,101 @@ Censorate is an AI-native requirement management system organized by Projects wi
 ```bash
 cd censorate-system/backend
 
-# Start backend server (port 8216)
-python main.py
+# Run server
+python main.py                          # port 8216, auto-reload
 
-# Start with auto-reload
-uvicorn main:app --reload --port 8216
-
-# Install dependencies
+# Install deps
 pip install -r requirements.txt
 
-# Run tests
-pytest
+# Tests
+pytest                                  # all tests
+python -m pytest tests/unit/ -v         # unit tests
 ```
 
-### Frontend (Next.js)
+### Frontend (Next.js 16)
 
 ```bash
 cd censorate-system/frontend
 
-# Start dev server (port 3000)
-npm run dev
-
-# Build for production
-npm run build
-
-# Install dependencies
-npm install
-```
-
-### Testing
-
-```bash
-# Backend unit tests
-cd censorate-system/backend
-pytest
-
-# Frontend E2E tests (Playwright)
-cd censorate-system/frontend
-npx playwright test
+npm run dev          # dev server (port 3000)
+npm run build        # production build
 ```
 
 ## Architecture
 
-### Backend Architecture
-
-The backend follows a layered architecture pattern:
+### System Flow
 
 ```
-API Layer (app/api/v1/)
-    ↓
-Service Layer (app/services/) - Business logic
-    ↓
-Repository Layer (app/repositories/) - Data access
-    ↓
-Model Layer (app/models/) - SQLAlchemy ORM
+User Story → [Claude API] → PRD (user confirms)
+    → [Claude API] → Architecture Design (user approves)
+    → [Claude API] → Code Generation (auto review)
+    → User approves → [GitHub API] → Push to repo
 ```
 
-**Key Directories**:
-- `app/api/v1/endpoints/` - API route handlers
-- `app/services/` - Business logic (deepagent_service.py, requirement_service.py, etc.)
-- `app/repositories/` - Database access (BaseRepository pattern)
-- `app/models/` - SQLAlchemy models (Project, Requirement, Task, User, etc.)
-- `app/core/` - Configuration, security, database, logging
-- `app/agents/` - AI Agent implementations (analysis_agent.py, design_agent.py, etc.)
-- `app/skills/` - Agent skill definitions (analysis/, design/, development/, testing/)
-- `app/state_machine/` - Requirement state transitions
+### Backend Layers
 
-### Frontend Architecture
+```
+API Layer (app/api/v1/endpoints/)
+    ↓
+Service Layer (app/services/)         ← business logic, orchestrator
+    ↓
+Agent Layer (app/agents_v2/)          ← Claude API calls
+    ↓
+Model Layer (app/models/)             ← SQLAlchemy ORM (6 models)
+```
 
-- **Framework**: Next.js 16.2.3 with App Router
-- **State Management**: Zustand stores (`app/stores/`)
-- **Component Structure**:
-  - `app/components/kanban/` - Kanban board components
-  - `app/components/team/` - Team and agent management
-  - `app/components/requirement/` - Requirement detail views
-- **API Client**: `app/lib/api/` - API integration layer
-- **Custom Hooks**: `app/hooks/` - Reusable logic
+**Key Backend Directories**:
+- `app/api/v1/endpoints/` — auth, templates, generation_projects, pipeline, generated_files, github
+- `app/schemas/` — Pydantic schemas (template, generation_project, prd, architecture, review)
+- `app/services/` — claude_service (Anthropic SDK wrapper), pipeline_orchestrator (ties agents together), github_service (Git Trees API push)
+- `app/agents_v2/` — 5 agents: requirement_analysis → architect → code_generator → code_review → github_push
+- `app/models/` — 6 models: User, Template, GenerationProject, GeneratedFile, PipelineStep, GitHubRepo
+- `app/core/` — Config (pydantic-settings), JWT security, database (init_db + migrate_to_v2)
+- `app/state_machine/` — generation_state_machine (9 states: draft→confirmed→designing→generating→reviewing→ready→pushing→completed→failed)
+- `app/seed_data/` — Default template seed (FastAPI + Next.js monorepo)
+
+### Frontend
+
+- **Framework**: Next.js 16.2.3 App Router + TypeScript + Tailwind CSS
+- **State (Zustand)**: 2 stores — templateStore, generationProjectStore
+- **Key Components**: generation/ (NewProjectForm, ProjectDetail, PipelineProgress)
+- **Pages**: /dashboard (main), /projects/[id] (detail), /login
+- **API Client**: `lib/api/` (client.ts, templates.ts, generation-projects.ts)
+
+## Models
+
+| Model | Key Fields |
+|-------|-----------|
+| Template | name, slug, tech_stack (JSON), is_monorepo, config |
+| GenerationProject | name, user_story, status, template_id, prd_content, architecture_design, repo_url |
+| GeneratedFile | project_id, file_path, content, language, step, status |
+| PipelineStep | project_id, step_type, status, result, error, retry_count |
+| GitHubRepo | project_id, repo_name, owner, url, push_status, commit_sha |
+| User | username, email, hashed_password |
+
+## Pipeline State Machine
+
+`draft → confirmed → designing → generating → reviewing → ready → pushing → completed`
+
+All states can transition to `failed`. Failed can retry to `draft` or `confirmed`. Back transitions allowed.
+
+## API Endpoints
+
+| Prefix | Routes |
+|--------|--------|
+| `/auth` | login, register |
+| `/templates` | GET list, GET by id |
+| `/generation-projects` | CRUD + confirm PRD / approve architecture / approve code / retry / cancel |
+| `/pipeline` | GET /projects/{id}/steps |
+| `/generated-files` | GET list, GET detail with content |
+| `/github` | GET /projects/{id}/github |
 
 ## Important Notes
 
-1. **Port Configuration**: The backend runs on port 8216 (not 8026), frontend on 3000
-
-2. **Environment Variables**:
-   - Backend: `censorate-system/backend/.env` (use .env.example as template)
-   - Frontend: `censorate-system/frontend/.env.local` with `NEXT_PUBLIC_API_URL=http://localhost:8216/api/v1`
-
-3. **Project Types**:
-   - Non-Technical: 4 lanes (Business requirements focused)
-   - Technical: 6 lanes (Includes GitHub repo integration)
-
-4. **REQ-ID Tracking**: Requirements have persistent REQ-XXXX IDs that remain constant across all phases
-
-5. **AI Agent System**:
-   - Skills are defined in `backend/app/skills/` as SKILL.md files
-   - Agents are implemented in `backend/app/agents/` extending BaseAgent
-   - Agent execution records are tracked in `agent_execution` table
-
-## Database
-
-- **Development**: SQLite (database.db)
-- **Production**: PostgreSQL (configure via DATABASE_URL in .env)
-- **Migrations**: Alembic is included for database migrations
-
-## API Documentation
-
-FastAPI auto-generated docs available at: http://localhost:8216/docs
-
-## Testing Strategy
-
-- **Unit Tests**: `backend/tests/unit/` - pytest
-- **Integration Tests**: `backend/tests/integration/` - pytest
-- **E2E Tests**: 
-  - Backend: `backend/tests/e2e/` - pytest
-  - Frontend: `frontend/tests/e2e/` - Playwright
-
-## TDD (Test-Driven Development)
-
-**MANDATORY: All new development must follow TDD**
-
-### Core Principle
-```
-RED → GREEN → REFACTOR
-```
-1. RED: Write failing test first
-2. GREEN: Minimal code to pass
-3. REFACTOR: Clean up, keep tests green
-
-### Quick Reference
-- **TDD Guidelines**: [docs/tdd-guidelines.md](docs/tdd-guidelines.md) - Full TDD workflow and rules
-- **Test Assessment**: [docs/test-assessment.md](docs/test-assessment.md) - Current test quality and improvement plan
-
-### Testing Commands
-```bash
-# Backend tests
-cd censorate-system/backend
-python -m pytest tests/unit/ -v          # Unit tests
-python -m pytest tests/integration/ -v   # Integration tests
-python -m pytest tests/ -v               # All tests
-
-# Frontend tests
-cd censorate-system/frontend
-npm run test:e2e                         # Playwright E2E tests
-npm run test:e2e:ui                      # Playwright with UI
-```
-
-### Commit Message Convention
-```
-RED: Test <feature> fails
-GREEN: Implement <feature>
-REFACTOR: Clean up <feature> code
-```
-
-### The Iron Law
-**NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST**
-
-If you wrote code before test: DELETE IT. Start over with TDD.
-
-Exceptions only with explicit approval.
-
-## Common Tasks
-
-When adding a new feature:
-
-1. **Backend**:
-   - Create model in `app/models/`
-   - Create repository in `app/repositories/` (inheriting from BaseRepository)
-   - Create service in `app/services/`
-   - Create schema in `app/schemas/`
-   - Create endpoint in `app/api/v1/endpoints/`
-   - Register router in `app/api/v1/router.py`
-
-2. **Frontend**:
-   - Create component in `app/components/`
-   - Add API client functions in `app/lib/api/`
-   - Update Zustand store in `app/stores/`
-   - Create custom hook in `app/hooks/` if needed
-
-3. **AI Agent**:
-   - Create agent in `app/agents/` extending BaseAgent
-   - Define skills in `app/skills/` as SKILL.md files
-   - Register agent in `app/agents/registry.py`
+1. **Ports**: Backend 8216, Frontend 3000, DB 5432, Redis 6379
+2. **Claude API**: Set `CLAUDE_API_KEY` in `.env`. Model defaults to `claude-3-5-sonnet-20240620`
+3. **GitHub**: Set `GITHUB_ACCESS_TOKEN` + `GITHUB_USERNAME` in `.env` for code push
+4. **Agent pipeline runs via FastAPI BackgroundTasks** — frontend polls every 3s for progress
+5. **Generation templates** are seeded into DB on startup. Default: FastAPI + Next.js monorepo
+6. **DB init**: `init_db()` creates tables and seeds templates. `migrate_to_v2()` drops all + recreates
+7. **No more Hermes, Skill Manager, MinIO** — those were removed in the v2 transformation

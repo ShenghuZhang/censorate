@@ -38,69 +38,21 @@ class Settings(BaseSettings):
     # AI Services
     CLAUDE_API_KEY: str = ""
     CLAUDE_MODEL: str = "claude-3-5-sonnet-20240620"
+    CLAUDE_MAX_TOKENS: int = 4096
     OPENAI_API_KEY: str = ""
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
 
-    # DeepSeek
-    DEEPSEEK_API_KEY: str = ""
-    DEEPSEEK_MODEL: str = "deepseek-chat"
-    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
-
-    # DeepAgent Configuration
-    DEEPAGENT_API_URL: str = "http://localhost:8001"
-    DEEPAGENT_API_KEY: str = ""
-
-    # GitHub
+    # GitHub (for code generation push)
+    GITHUB_ACCESS_TOKEN: str = ""
+    GITHUB_USERNAME: str = ""
     GITHUB_APP_ID: str = ""
     GITHUB_PRIVATE_KEY: str = ""
     GITHUB_WEBHOOK_SECRET: str = ""
 
-    # Lark (Feishu) Configuration
+    # Deprecated (kept as stubs to avoid import errors, will be removed)
+    DEEPSEEK_API_KEY: str = ""
     LARK_APP_ID: str = ""
-    LARK_APP_SECRET: str = ""
-    LARK_ENCRYPT_KEY: str = ""
-    LARK_VERIFICATION_TOKEN: str = ""
-
-    # Skills directory
-    SKILLS_DIR: str = "app/skills"
-    SKILL_STORAGE_DIR: str = "app/storage/skills"
-
-    # Hermes data path (for skill_manager sync)
-    HERMES_DATA_PATH: str = "../hermes_data"
-
-    # Default skill-manager URL for webhook (used in Docker)
-    SKILL_MANAGER_URL: str | None = None
-
-    # Encryption (for API keys)
-    ENCRYPTION_KEY: str = ""
-
-    # Scheduler
-    SCHEDULER_ENABLED: bool = True
-
-    # Skill upload limits
-    MAX_FILE_SIZE: int = 1024 * 1024  # 1MB per file
-    MAX_TOTAL_SIZE: int = 10 * 1024 * 1024  # 10MB total
-    ALLOWED_EXTENSIONS: list = [".md", ".json", ".yaml", ".yml", ".txt", ".py", ".zip", ".js", ".ts", ".tsx", ".jsx", ".sh", ".bash", ".zsh", ".css", ".html", ".xml", ".csv", ".ini", ".cfg", ".conf", ".toml", ".env", ".env.example", ".gitignore", ".dockerignore", ".dockerfile", "dockerfile", ".go", ".rs", ".java", ".kt", ".kts", ".scala", ".php", ".rb", ".cpp", ".c", ".h", ".hpp", ".cs", ".fs", ".fsx", ".sql", ".graphql", ".gql", ".prisma", ".lua", ".pl", ".pm", ".r", ".dart", ".swift", ".ktm", ".m", ".mm", ".asm", ".s", ".wasm", ".wat", ".wast"]
-
-    # MinIO Configuration
-    MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
-    MINIO_BUCKET_NAME: str = "censorate-attachments"
-    MINIO_SKILLS_BUCKET_NAME: str = "censorate-skills"
-    MINIO_SECURE: bool = False
-    MINIO_PUBLIC_URL: str = "http://localhost:9000"  # Public URL for accessing files
-
-    # Storage Backend Configuration
-    STORAGE_BACKEND: str = "minio"  # "local" or "minio" - controls where skill files are stored
-
-    # Attachment upload limits
-    ATTACHMENT_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB per file
-    ATTACHMENT_ALLOWED_EXTENSIONS: list = [
-        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg",
-        ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-        ".txt", ".md", ".zip"
-    ]
+    MINIO_ENDPOINT: str = ""
 
     model_config = {
         "env_file": ".env",

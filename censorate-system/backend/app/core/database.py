@@ -35,9 +35,17 @@ def get_db():
 def init_db():
     """Initialize database tables."""
     from app.models import (
-        project, requirement, requirement_status_history, comment, task, test_case, github_repo, user,
-        team_member, lane_role, agent_execution, automation_rule, remote_agent,
-        skill, notification
+        user, template, generation_project, generated_file, pipeline_step, github_repo
     )
     from app.models.base import BaseModel
     BaseModel.metadata.create_all(bind=engine)
+
+    from app.seed_data.templates import seed_templates
+    seed_templates()
+
+
+def migrate_to_v2():
+    """Drop all old tables and create new schema for v2."""
+    from app.models.base import BaseModel
+    BaseModel.metadata.drop_all(bind=engine)
+    init_db()
